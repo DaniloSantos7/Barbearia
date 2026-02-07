@@ -1,67 +1,58 @@
+import sys
+from pathlib import Path
+
+sys.path.append(str(Path(__file__).parent))
+
 import streamlit as st
 import pandas as pd
 import qrcode
 from io import BytesIO
-from db import conectar_banco
-from queries import QUERY_RESUMO_HOJE, QUERY_ATENDIMENTOS_HOJE
-from dashboard_semanal import render_dashboard_semanal
+
+from services.db import conectar_banco
+from queries.atendimentos import (
+    QUERY_RESUMO_HOJE,
+    QUERY_ATENDIMENTOS_HOJE
+)
+from dashboards.dashboard_semanal import render_dashboard_semanal
+
 
 st.set_page_config(
-    page_title="Barbearia — Painel",
+    page_title="Dashboard Barbearia",
     layout="wide"
 )
 
-st.title("📊 Barbearia — Controle Diário")
+st.title("📊 Dashboard da Barbearia")
 
-# ===============================
-# QR CODE PARA CLIENTES
-# ===============================
-st.subheader("📱 QR Code para atendimento")
+# 🔌 Conexão
+conn = conectar_banco()
 
-# enquanto estiver local
-url_formulario ="http://192.168.0.7:8501/Cliente"
+# 📅 Resumo do dia
+resumo = pd.read_sql(QUERY_RESUMO_HOJE, conn)
 
-qr = qrcode.make(url_formulario)
-buf = BytesIO()
-qr.save(buf, format="PNG")
-
-st.image(
-    buf.getvalue(),
-    caption="Escaneie para registrar atendimento",
-    width=250
-)
+col1, col2 = st.columns(2)
+col1.metric("Atendimentos hoje", int(resumo["total_atendimentos"][0]))
+col2.metric("Faturamento hoje (R$)", resumo["faturamento_total"][0])
 
 st.divider()
 
-# ===============================
-# CONEXÃO COM BANCO
-# ===============================
-try:
-    conn = conectar_banco()
-    st.success("✅ Conectado ao banco de dados")
-except Exception as e:
-    st.error("❌ Erro ao conectar no banco")
-    st.error(e)
-    st.stop()
-
-# ===============================
-# RESUMO DO DIA
-# ===============================
-st.subheader("📅 Resumo de hoje")
-
-df_resumo = pd.read_sql(QUERY_RESUMO_HOJE, conn)
-
-col1, col2 = st.columns(2)
-col1.metric("Atendimentos hoje", int(df_resumo.iloc[0, 0]))
-col2.metric("Faturamento hoje (R$)", float(df_resumo.iloc[0, 1]))
-
-# ===============================
-# ATENDIMENTOS DO DIA
-# ===============================
-st.subheader("🧾 Atendimentos de hoje")
-
+# 🧾 Atendimentos
 df_atendimentos = pd.read_sql(QUERY_ATENDIMENTOS_HOJE, conn)
 st.dataframe(df_atendimentos, use_container_width=True)
 
 st.divider()
-render_dashboard_semanal(conn) 
+
+# 📊 Dashboard semanal
+render_dashboard_semanal(conn)
+
+# 📱 QR Code
+st.sidebar.subheader("📱 Formulário")
+
+url_formulario = "http://localhost:8501/formulario"
+qr = qrcode.make(url_formulario)
+
+buf = BytesIO()
+qr.save(buf, format="PNG")
+
+st.sidebar.image(buf.getvalue(), caption="Escaneie para registrar atendimento")
+
+conn.close()

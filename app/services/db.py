@@ -1,7 +1,7 @@
 #Conexão com o banco Postgres
 # app/db.py
-import psycopg2
 import streamlit as st
+import psycopg2
 
 def conectar_banco():
     return psycopg2.connect(
