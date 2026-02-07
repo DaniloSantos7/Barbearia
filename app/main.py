@@ -2,10 +2,9 @@ import streamlit as st
 import pandas as pd
 import qrcode
 from io import BytesIO
-from dashboard_semanal import render_dashboard_semanal
-
 from db import conectar_banco
 from queries import QUERY_RESUMO_HOJE, QUERY_ATENDIMENTOS_HOJE
+from dashboard_semanal import render_dashboard_semanal
 
 st.set_page_config(
     page_title="Barbearia — Painel",
@@ -20,7 +19,7 @@ st.title("📊 Barbearia — Controle Diário")
 st.subheader("📱 QR Code para atendimento")
 
 # enquanto estiver local
-url_formulario = "http://localhost:8502"
+url_formulario ="http://192.168.0.7:8501/Cliente"
 
 qr = qrcode.make(url_formulario)
 buf = BytesIO()
@@ -65,4 +64,4 @@ df_atendimentos = pd.read_sql(QUERY_ATENDIMENTOS_HOJE, conn)
 st.dataframe(df_atendimentos, use_container_width=True)
 
 st.divider()
-render_dashboard_semanal(conn)
+render_dashboard_semanal(conn) 
