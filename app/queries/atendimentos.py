@@ -42,3 +42,29 @@ GROUP BY
     v.total
 ORDER BY horario DESC;
 """
+
+QUERY_RESUMO_MENSAL_GRAFICO = """
+SELECT 
+    DATE(a.data_atendimento) AS data,
+    COUNT(DISTINCT a.id_atendimento) AS total_atendimentos,
+    COALESCE(SUM(v.total), 0) AS faturamento
+FROM atendimento a
+LEFT JOIN venda v ON v.id_venda = a.id_venda
+WHERE EXTRACT(MONTH FROM a.data_atendimento) = %s 
+  AND EXTRACT(YEAR FROM a.data_atendimento) = %s
+GROUP BY DATE(a.data_atendimento)
+ORDER BY data;
+"""
+
+QUERY_RESUMO_MENSAL_GRAFICO = """
+SELECT 
+    DATE(a.data_atendimento) AS data,
+    COUNT(DISTINCT a.id_atendimento) AS total_atendimentos,
+    COALESCE(SUM(v.total), 0) AS faturamento
+FROM atendimento a
+LEFT JOIN venda v ON v.id_venda = a.id_venda
+WHERE EXTRACT(MONTH FROM a.data_atendimento) = %s 
+  AND EXTRACT(YEAR FROM a.data_atendimento) = %s
+GROUP BY DATE(a.data_atendimento)
+ORDER BY data;
+"""
