@@ -1,4 +1,6 @@
 streamlit
-psycopg2-binary
 pandas
-qrcode[pil]
+psycopg2-binary
+plotly
+qrcode
+pillow

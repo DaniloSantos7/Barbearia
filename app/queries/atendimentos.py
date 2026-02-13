@@ -36,8 +36,8 @@ QUERY_RESUMO_SEMANA = """
 SELECT
     DATE(a.data_atendimento) AS data,
     COUNT(a.id_atendimento) AS total_atendimentos,
-    COALESCE(SUM(v.total), 0) AS faturamento,
-    COALESCE(SUM(v.caixinha), 0) AS caixinhas
+    COALESCE(SUM(v.total), 0) AS faturamento_servicos, -- Mudamos de 'faturamento' para 'faturamento_servicos'
+    COALESCE(SUM(v.caixinha), 0) AS total_caixinhas    -- Mudamos de 'caixinhas' para 'total_caixinhas'
 FROM atendimento a
 JOIN venda v ON v.id_venda = a.id_venda
 WHERE a.data_atendimento >= CURRENT_DATE - INTERVAL '6 days'
@@ -47,8 +47,9 @@ ORDER BY data;
 
 QUERY_ATENDIMENTOS_HOJE = """
 SELECT
-    a.data_atendimento AS horario,
+    TO_CHAR(a.data_atendimento, 'HH24:MI') AS horario,
     c.nome AS cliente,
+    c.celular AS telefone, -- Coluna adicionada/garantida
     STRING_AGG(s.nome_servico, ', ') AS servicos,
     v.total AS valor,
     v.caixinha AS gorjeta,
@@ -59,8 +60,8 @@ JOIN venda v ON v.id_venda = a.id_venda
 JOIN item_venda iv ON iv.id_venda = v.id_venda
 JOIN servico s ON s.id_servico = iv.id_servico
 WHERE DATE(a.data_atendimento) = CURRENT_DATE
-GROUP BY a.id_atendimento, c.nome, v.total, v.caixinha, v.avaliacao
-ORDER BY horario DESC;
+GROUP BY a.id_atendimento, c.nome, c.celular, v.total, v.caixinha, v.avaliacao
+ORDER BY a.data_atendimento DESC;
 """
 
 # --- QUERIES DE INSERÇÃO QUE ESTAVAM FALTANDO ---

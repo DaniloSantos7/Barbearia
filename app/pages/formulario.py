@@ -13,9 +13,19 @@ from queries.atendimentos import (
 )
 
 # --------------------------------
-# CONFIGURAÇÃO E CONEXÃO
+# CONFIGURAÇÃO E CSS DE SEGURANÇA
 # --------------------------------
 st.set_page_config(page_title="Barbearia", layout="centered")
+
+# Esconde a sidebar e menus para o cliente não sair do formulário
+st.markdown("""
+    <style>
+        [data-testid="stSidebarNav"], [data-testid="stSidebar"], button[kind="header"] {
+            display: none !important;
+        }
+        .block-container { padding-top: 2rem; }
+    </style>
+""", unsafe_allow_html=True)
 
 def get_connection():
     return psycopg2.connect(
@@ -24,10 +34,10 @@ def get_connection():
     )
 
 # --------------------------------
-# ESTADOS DO FORMULÁRIO (Clean Flow)
+# ESTADOS DO FORMULÁRIO
 # --------------------------------
 if "step" not in st.session_state:
-    st.session_state.step = "LOGIN"  # Passos: LOGIN, CADASTRO, FORMULARIO
+    st.session_state.step = "LOGIN"
 if "user_data" not in st.session_state:
     st.session_state.user_data = None
 
@@ -62,7 +72,7 @@ st.markdown(f"""
 st.divider()
 
 # --------------------------------
-# FLUXO 1: LOGIN / IDENTIFICAÇÃO
+# FLUXO DO FORMULÁRIO (LOGIN -> CADASTRO -> FORM)
 # --------------------------------
 if st.session_state.step == "LOGIN":
     st.subheader("📱 Identifique-se")
@@ -74,15 +84,13 @@ if st.session_state.step == "LOGIN":
             st.warning("Informe o número completo.")
         else:
             conn = get_connection(); cur = conn.cursor()
-            # Busca cliente
             cur.execute(QUERY_BUSCAR_CLIENTE_POR_CELULAR, (tel_clean,))
             cliente = cur.fetchone()
             
             if cliente:
                 id_cli, nome_cli = cliente
-                # VERIFICA TRAVA DE 1 POR DIA
                 cur.execute(QUERY_CHECAR_ATENDIMENTO_HOJE, (id_cli,))
-                ja_foi = cur.fetchone()[0] # Retorna True ou False (EXISTS)
+                ja_foi = cur.fetchone()[0]
                 
                 if ja_foi:
                     st.error(f"📍 {nome_cli.split()[0]}, você já realizou um atendimento hoje. Até a próxima!")
@@ -96,9 +104,6 @@ if st.session_state.step == "LOGIN":
                 st.rerun()
             cur.close(); conn.close()
 
-# --------------------------------
-# FLUXO 2: CADASTRO NOVO CLIENTE
-# --------------------------------
 elif st.session_state.step == "CADASTRO":
     st.subheader("👋 Bem-vindo! Qual seu nome?")
     novo_nome = st.text_input("Nome Completo")
@@ -113,14 +118,10 @@ elif st.session_state.step == "CADASTRO":
             cur.close(); conn.close()
             st.rerun()
 
-# --------------------------------
-# FLUXO 3: FORMULÁRIO DE SERVIÇOS
-# --------------------------------
 elif st.session_state.step == "FORMULARIO":
     user = st.session_state.user_data
     st.success(f"Logado como: **{user['nome']}**")
     
-    # Carregar dados do banco (conforme seu código original)
     conn = get_connection(); cur = conn.cursor()
     cur.execute("SELECT id_servico, nome_servico, preco FROM servico ORDER BY nome_servico")
     servico_dict = {n: (i, p) for i, n, p in cur.fetchall()}
@@ -131,7 +132,6 @@ elif st.session_state.step == "FORMULARIO":
     forma_pgto = st.selectbox("💳 Pagamento", options=list(forma_dict.keys()))
     
     st.divider()
-    # NOVOS CAMPOS
     st.write("### ✨ Opcionais")
     col1, col2 = st.columns(2)
     with col1:
@@ -146,18 +146,12 @@ elif st.session_state.step == "FORMULARIO":
         if not servicos_sel:
             st.warning("Selecione ao menos um serviço.")
         else:
-            # INSERT VENDA (Com caixinha e avaliacao)
             cur.execute(QUERY_INSERT_VENDA, (user['id'], forma_dict[forma_pgto], total, caixinha, avaliacao))
             id_venda = cur.fetchone()[0]
-            
-            # INSERT ITENS
             for s in servicos_sel:
                 id_s, preco = servico_dict[s]
                 cur.execute(QUERY_INSERT_ITEM_VENDA, (id_venda, id_s, preco))
-            
-            # INSERT ATENDIMENTO
             cur.execute(QUERY_INSERT_ATENDIMENTO, (user['id'], id_venda, ""))
-            
             conn.commit(); cur.close(); conn.close()
             st.balloons()
             st.toast("Corte registrado!", icon='🔥')
@@ -167,6 +161,31 @@ elif st.session_state.step == "FORMULARIO":
     if st.button("Sair / Trocar Usuário", type="secondary"):
         reset_form()
         st.rerun()
+
+# --------------------------------
+# PORTA DOS FUNDOS (ACESSO BARBEIRO)
+# --------------------------------
+st.markdown("<br><br><br>", unsafe_allow_html=True)
+col_secret1, col_secret2 = st.columns([10, 1])
+
+with col_secret2:
+    if st.button("⚙️", help="Área Administrativa", key="btn_adm_secret"):
+        st.session_state.show_admin_auth = True
+
+if st.session_state.get("show_admin_auth"):
+    st.divider()
+    senha_adm = st.text_input("Senha Admin", type="password", key="input_adm_pwd")
+    c_btn1, c_btn2 = st.columns(2)
+    with c_btn1:
+        if st.button("Acessar Dashboard"):
+            if senha_adm == "1234":
+                st.switch_page("main.py")
+            else:
+                st.error("Senha incorreta")
+    with c_btn2:
+        if st.button("Fechar"):
+            st.session_state.show_admin_auth = False
+            st.rerun()
 
 
 
