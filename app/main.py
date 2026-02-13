@@ -182,7 +182,7 @@ with t3:
     url_cliente = "http://Barbearia.streamlit.app/formulario"
     qr = qrcode.make(url_cliente)
     buf = BytesIO()
-    qr.save(buf, format="PNG")
+    qr.save(buf, format="PNG") 
     st.image(buf.getvalue(), width=250, caption="Aponte a câmera do Tablet aqui")
     st.code(url_cliente)
 
