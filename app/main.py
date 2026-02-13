@@ -2,6 +2,7 @@ import sys
 from pathlib import Path
 from io import BytesIO
 import datetime
+from decimal import Decimal
 
 import streamlit as st
 import pandas as pd
@@ -12,12 +13,7 @@ import plotly.express as px
 sys.path.append(str(Path(__file__).parent))
 
 from services.db import conectar_banco
-from queries.atendimentos import (
-    QUERY_RESUMO_HOJE, 
-    QUERY_RESUMO_SEMANA, 
-    QUERY_ATENDIMENTOS_HOJE,
-    QUERY_RESUMO_MENSAL_GRAFICO
-)
+from queries.atendimentos import *
 
 # -------------------------------
 # CONFIGURAÇÃO E CSS
@@ -66,7 +62,7 @@ df_s = pd.read_sql(QUERY_RESUMO_SEMANA, conn)
 st.subheader("📍 Resumo de Hoje")
 c1, c2 = st.columns(2)
 c1.metric("✂️ Atendimentos", int(df_h["total_atendimentos"][0]) if not df_h.empty else 0)
-c2.metric("💰 Faturamento", f"R$ {float(df_h['faturamento'][0]):.0f}" if not df_h.empty else "R$ 0")
+c2.metric("💰 Faturamento", f"R$ {float(df_h['faturamento_servicos'][0]):.0f}" if not df_h.empty else "R$ 0")
 
 st.markdown("---")
 
@@ -125,7 +121,7 @@ with t2:
     if not df_m.empty:
         # --- TOTALIZADOR MENSAL ---
         total_at_mes = int(df_m["total_atendimentos"].sum())
-        total_fat_mes = float(df_m["faturamento"].sum())
+        total_fat_mes = float(df_m["faturamento_servicos"].sum())
 
         st.markdown(f"#### 📊 Acumulado de {mes_nome}")
         cm1, cm2 = st.columns(2)
@@ -154,7 +150,7 @@ with t2:
 
         criar_grafico_travado(df_m, "total_atendimentos", "Atendimentos por Dia", "#2980b9")
         st.write("") 
-        criar_grafico_travado(df_m, "faturamento", "Faturamento por Dia", "#27ae60")
+        criar_grafico_travado(df_m, "faturamento_servicos", "Faturamento por Dia", "#27ae60")
     else:
         st.warning(f"Nenhum registro encontrado para {mes_nome}/{ano_num}")
 

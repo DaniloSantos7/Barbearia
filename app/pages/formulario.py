@@ -1,190 +1,172 @@
 import streamlit as st
 import psycopg2
+from decimal import Decimal
 import base64
 from pathlib import Path
-
-# --------------------------------
-# CONFIGURAÇÃO MOBILE
-# --------------------------------
-st.set_page_config(
-    page_title="Barbearia",
-    layout="centered"
+from queries.atendimentos import (
+    QUERY_BUSCAR_CLIENTE_POR_CELULAR,
+    QUERY_CHECAR_ATENDIMENTO_HOJE,
+    QUERY_INSERT_VENDA,
+    QUERY_INSERT_ITEM_VENDA,
+    QUERY_INSERT_ATENDIMENTO,
+    QUERY_INSERT_CLIENTE    
 )
 
-# Função para converter imagem local para Base64 (necessário para HTML)
-def get_base64_of_bin_file(bin_file):
-    with open(bin_file, 'rb') as f:
-        data = f.read()
-    return base64.b64encode(data).decode()
+# --------------------------------
+# CONFIGURAÇÃO E CONEXÃO
+# --------------------------------
+st.set_page_config(page_title="Barbearia", layout="centered")
 
-# --------------------------------
-# CONTROLE DE BALÕES
-# --------------------------------
-if "show_balloons" not in st.session_state:
-    st.session_state.show_balloons = False
-
-if st.session_state.show_balloons:
-    st.balloons()
-    st.session_state.show_balloons = False
-
-# --------------------------------
-# CONEXÃO
-# --------------------------------
 def get_connection():
     return psycopg2.connect(
-        dbname="barbearia",
-        user="postgres",
-        password="211308",
-        host="localhost",
-        port="5432"
+        dbname="barbearia", user="postgres", password="211308",
+        host="localhost", port="5432"
     )
 
 # --------------------------------
-# BUSCAR SERVIÇOS E PAGAMENTOS
+# ESTADOS DO FORMULÁRIO (Clean Flow)
 # --------------------------------
-def get_servicos():
-    conn = get_connection()
-    cur = conn.cursor()
-    cur.execute("SELECT id_servico, nome_servico, preco FROM servico ORDER BY nome_servico")
-    data = cur.fetchall()
-    cur.close()
-    conn.close()
-    return data
-
-def get_formas_pagamento():
-    conn = get_connection()
-    cur = conn.cursor()
-    cur.execute("SELECT id_forma_pagamento, tipo_pagamento FROM forma_pagamento")
-    data = cur.fetchall()
-    cur.close()
-    conn.close()
-    return data
+if "step" not in st.session_state:
+    st.session_state.step = "LOGIN"  # Passos: LOGIN, CADASTRO, FORMULARIO
+if "user_data" not in st.session_state:
+    st.session_state.user_data = None
 
 # --------------------------------
-# TOPO PREMIUM (TRAVADO LADO A LADO)
+# FUNÇÕES DE APOIO
 # --------------------------------
-# Carregando a imagem local para o HTML
+def get_base64_of_bin_file(bin_file):
+    with open(bin_file, 'rb') as f:
+        return base64.b64encode(f.read()).decode()
+
+def reset_form():
+    for key in ["servicos", "pagamento", "caixinha", "avaliacao"]:
+        if key in st.session_state: del st.session_state[key]
+    st.session_state.step = "LOGIN"
+    st.session_state.user_data = None
+
+# --------------------------------
+# TOPO PREMIUM
+# --------------------------------
 img_path = "assets/barbeiro.gif"
-if Path(img_path).exists():
-    img_base64 = get_base64_of_bin_file(img_path)
-    img_html = f'data:image/gif;base64,{img_base64}'
-else:
-    img_html = "" # Caso o arquivo não exista
+img_html = f'data:image/gif;base64,{get_base64_of_bin_file(img_path)}' if Path(img_path).exists() else ""
 
-st.markdown(
-    f"""
-    <div style="
-        display: flex;
-        align-items: center;
-        gap: 15px;
-        padding: 10px 0;
-        width: 100%;
-    ">
-        <img src="{img_html}" style="
-            width: 120px; 
-            height: 120px; 
-            border-radius: 15px;
-            object-fit: cover;
-        ">
-        <div style="flex-grow: 1;">
-            <h3 style="
-                margin: 0; 
-                line-height: 1.1; 
-                white-space: nowrap; 
-                font-size: clamp(1.1rem, 5vw, 1.6rem);
-            ">
-                💈 Seja bem-vindo
-            </h3>
-            <h2 style="
-                margin: 0; 
-                line-height: 1.2; 
-                white-space: nowrap; 
-                font-weight: normal;
-                font-size: clamp(0.8rem, 4vw, 1.1rem);
-            ">
-                ✅ Preencha as informações
-            </h2>
+st.markdown(f"""
+    <div style="display: flex; align-items: center; gap: 15px; padding: 10px 0;">
+        <img src="{img_html}" style="width: 100px; height: 100px; border-radius: 15px; object-fit: cover;">
+        <div>
+            <h3 style="margin: 0;">💈 BarberFlow</h3>
+            <p style="margin: 0; opacity: 0.8;">Atendimento por ordem de chegada</p>
         </div>
     </div>
-    """,
-    unsafe_allow_html=True
-)
-
+""", unsafe_allow_html=True)
 st.divider()
 
 # --------------------------------
-# FORMULÁRIO CLIENTE
+# FLUXO 1: LOGIN / IDENTIFICAÇÃO
 # --------------------------------
-nome = st.text_input("👤 Nome", placeholder="Seu nome", key="nome_cliente")
-
-telefone = st.text_input("📱 Telefone", placeholder="Ex: 11987654321", max_chars=11, key="telefone_cliente")
-telefone = "".join(filter(str.isdigit, telefone))
-
-servicos = get_servicos()
-formas = get_formas_pagamento()
-
-servico_dict = {n: (i, p) for i, n, p in servicos}
-forma_dict = {t: i for i, t in formas}
-
-servicos_selecionados = st.multiselect("✂️ Serviços", options=list(servico_dict.keys()), key="servicos")
-
-if servicos_selecionados:
-    st.markdown("#### 🧾 Serviços selecionados")
-    for s in servicos_selecionados:
-        preco = servico_dict[s][1]
-        st.markdown(f"- **{s}** — R$ {preco:.2f}")
-
-forma_pagamento = st.selectbox("💳 Forma de pagamento", options=list(forma_dict.keys()), key="pagamento")
-
-total = sum(servico_dict[s][1] for s in servicos_selecionados)
-st.markdown(f"### 💰 Total: **R$ {total:.2f}**")
-
-# --------------------------------
-# SALVAR NO BANCO
-# --------------------------------
-if st.button("✅ Finalizar Atendimento", use_container_width=True):
-    if not nome or not telefone or not servicos_selecionados:
-        st.warning("Preencha todos os campos.")
-    elif len(telefone) < 11:
-        st.warning("O telefone deve ter no mínimo 11 dígitos (DDD + celular).")
-    else:
-        conn = get_connection()
-        cur = conn.cursor()
-
-        # Busca ou Insere Cliente
-        cur.execute("SELECT id_cliente FROM cliente WHERE celular = %s", (telefone,))
-        cliente = cur.fetchone()
-        if cliente:
-            id_cliente = cliente[0]
+if st.session_state.step == "LOGIN":
+    st.subheader("📱 Identifique-se")
+    tel = st.text_input("Celular (DDD + Número)", max_chars=11, placeholder="11940028922")
+    
+    if st.button("Continuar", use_container_width=True):
+        tel_clean = "".join(filter(str.isdigit, tel))
+        if len(tel_clean) < 11:
+            st.warning("Informe o número completo.")
         else:
-            cur.execute("INSERT INTO cliente (nome, celular) VALUES (%s, %s) RETURNING id_cliente", (nome, telefone))
-            id_cliente = cur.fetchone()[0]
+            conn = get_connection(); cur = conn.cursor()
+            # Busca cliente
+            cur.execute(QUERY_BUSCAR_CLIENTE_POR_CELULAR, (tel_clean,))
+            cliente = cur.fetchone()
+            
+            if cliente:
+                id_cli, nome_cli = cliente
+                # VERIFICA TRAVA DE 1 POR DIA
+                cur.execute(QUERY_CHECAR_ATENDIMENTO_HOJE, (id_cli,))
+                ja_foi = cur.fetchone()[0] # Retorna True ou False (EXISTS)
+                
+                if ja_foi:
+                    st.error(f"📍 {nome_cli.split()[0]}, você já realizou um atendimento hoje. Até a próxima!")
+                else:
+                    st.session_state.user_data = {"id": id_cli, "nome": nome_cli, "celular": tel_clean}
+                    st.session_state.step = "FORMULARIO"
+                    st.rerun()
+            else:
+                st.session_state.temp_celular = tel_clean
+                st.session_state.step = "CADASTRO"
+                st.rerun()
+            cur.close(); conn.close()
 
-        # Venda
-        cur.execute("INSERT INTO venda (total, id_cliente, id_forma_pagamento) VALUES (%s, %s, %s) RETURNING id_venda", 
-                    (total, id_cliente, forma_dict[forma_pagamento]))
-        id_venda = cur.fetchone()[0]
+# --------------------------------
+# FLUXO 2: CADASTRO NOVO CLIENTE
+# --------------------------------
+elif st.session_state.step == "CADASTRO":
+    st.subheader("👋 Bem-vindo! Qual seu nome?")
+    novo_nome = st.text_input("Nome Completo")
+    if st.button("Finalizar Cadastro"):
+        if novo_nome:
+            conn = get_connection(); cur = conn.cursor()
+            cur.execute(QUERY_INSERT_CLIENTE, (novo_nome, st.session_state.temp_celular))
+            id_novo = cur.fetchone()[0]
+            conn.commit()
+            st.session_state.user_data = {"id": id_novo, "nome": novo_nome}
+            st.session_state.step = "FORMULARIO"
+            cur.close(); conn.close()
+            st.rerun()
 
-        # Itens e Atendimento
-        for s in servicos_selecionados:
-            id_servico, preco = servico_dict[s]
-            cur.execute("INSERT INTO item_venda (id_venda, id_servico, valor_unitario) VALUES (%s, %s, %s)", (id_venda, id_servico, preco))
-        
-        cur.execute("INSERT INTO atendimento (id_cliente, id_venda) VALUES (%s, %s)", (id_cliente, id_venda))
+# --------------------------------
+# FLUXO 3: FORMULÁRIO DE SERVIÇOS
+# --------------------------------
+elif st.session_state.step == "FORMULARIO":
+    user = st.session_state.user_data
+    st.success(f"Logado como: **{user['nome']}**")
+    
+    # Carregar dados do banco (conforme seu código original)
+    conn = get_connection(); cur = conn.cursor()
+    cur.execute("SELECT id_servico, nome_servico, preco FROM servico ORDER BY nome_servico")
+    servico_dict = {n: (i, p) for i, n, p in cur.fetchall()}
+    cur.execute("SELECT id_forma_pagamento, tipo_pagamento FROM forma_pagamento")
+    forma_dict = {t: i for i, t in cur.fetchall()}
+    
+    servicos_sel = st.multiselect("✂️ Serviços de hoje", options=list(servico_dict.keys()))
+    forma_pgto = st.selectbox("💳 Pagamento", options=list(forma_dict.keys()))
+    
+    st.divider()
+    # NOVOS CAMPOS
+    st.write("### ✨ Opcionais")
+    col1, col2 = st.columns(2)
+    with col1:
+        caixinha = st.number_input("💸 Caixinha", min_value=0.0, step=1.0)
+    with col2:
+        avaliacao = st.select_slider("⭐ Avaliação", options=[1, 2, 3, 4, 5], value=5)
 
-        conn.commit()
-        cur.close()
-        conn.close()
+    total = sum(servico_dict[s][1] for s in servicos_sel)
+    st.markdown(f"## Total: R$ {total + Decimal(str(caixinha)):.2f}")
 
-        st.success("Atendimento registrado com sucesso! 💈🔥")
-        st.session_state.show_balloons = True
+    if st.button("✅ Finalizar", use_container_width=True):
+        if not servicos_sel:
+            st.warning("Selecione ao menos um serviço.")
+        else:
+            # INSERT VENDA (Com caixinha e avaliacao)
+            cur.execute(QUERY_INSERT_VENDA, (user['id'], forma_dict[forma_pgto], total, caixinha, avaliacao))
+            id_venda = cur.fetchone()[0]
+            
+            # INSERT ITENS
+            for s in servicos_sel:
+                id_s, preco = servico_dict[s]
+                cur.execute(QUERY_INSERT_ITEM_VENDA, (id_venda, id_s, preco))
+            
+            # INSERT ATENDIMENTO
+            cur.execute(QUERY_INSERT_ATENDIMENTO, (user['id'], id_venda, ""))
+            
+            conn.commit(); cur.close(); conn.close()
+            st.balloons()
+            st.toast("Corte registrado!", icon='🔥')
+            reset_form()
+            st.rerun()
 
-        # Limpa formulário
-        for key in ["nome_cliente", "telefone_cliente", "servicos", "pagamento"]:
-            if key in st.session_state:
-                del st.session_state[key]
+    if st.button("Sair / Trocar Usuário", type="secondary"):
+        reset_form()
         st.rerun()
-
 
 
 

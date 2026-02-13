@@ -1,19 +1,45 @@
+# --- QUERIES DE LOGIN E SEGURANÇA (Alta Performance) ---
+
+# Busca direta por índice (B-Tree)
+QUERY_BUSCAR_CLIENTE_POR_CELULAR = """
+SELECT id_cliente, nome FROM cliente WHERE celular = %s LIMIT 1;
+"""
+
+# Checagem de existência (mais rápido que COUNT)
+QUERY_CHECAR_ATENDIMENTO_HOJE = """
+SELECT EXISTS (
+    SELECT 1 FROM atendimento 
+    WHERE id_cliente = %s AND DATE(data_atendimento) = CURRENT_DATE
+);
+"""
+
+# --- QUERIES DE ESCRITA (Novos Campos) ---
+
+QUERY_INSERT_VENDA = """
+INSERT INTO venda (id_cliente, id_forma_pagamento, total, caixinha, avaliacao)
+VALUES (%s, %s, %s, %s, %s) RETURNING id_venda;
+"""
+
+# --- QUERIES DE DASHBOARD (Performance & Caixinha) ---
+
 QUERY_RESUMO_HOJE = """
 SELECT
-    COUNT(DISTINCT a.id_atendimento) AS total_atendimentos,
-    COALESCE(SUM(v.total), 0) AS faturamento
+    COUNT(id_atendimento) AS total_atendimentos,
+    COALESCE(SUM(v.total), 0) AS faturamento_servicos,
+    COALESCE(SUM(v.caixinha), 0) AS total_caixinhas
 FROM atendimento a
-LEFT JOIN venda v ON v.id_venda = a.id_venda
+JOIN venda v ON v.id_venda = a.id_venda
 WHERE DATE(a.data_atendimento) = CURRENT_DATE;
 """
 
 QUERY_RESUMO_SEMANA = """
 SELECT
     DATE(a.data_atendimento) AS data,
-    COUNT(DISTINCT a.id_atendimento) AS total_atendimentos,
-    COALESCE(SUM(v.total), 0) AS faturamento
+    COUNT(a.id_atendimento) AS total_atendimentos,
+    COALESCE(SUM(v.total), 0) AS faturamento,
+    COALESCE(SUM(v.caixinha), 0) AS caixinhas
 FROM atendimento a
-LEFT JOIN venda v ON v.id_venda = a.id_venda
+JOIN venda v ON v.id_venda = a.id_venda
 WHERE a.data_atendimento >= CURRENT_DATE - INTERVAL '6 days'
 GROUP BY DATE(a.data_atendimento)
 ORDER BY data;
@@ -23,48 +49,48 @@ QUERY_ATENDIMENTOS_HOJE = """
 SELECT
     a.data_atendimento AS horario,
     c.nome AS cliente,
-    c.celular AS telefone,
     STRING_AGG(s.nome_servico, ', ') AS servicos,
-    fp.tipo_pagamento AS pagamento,
-    v.total AS valor
+    v.total AS valor,
+    v.caixinha AS gorjeta,
+    v.avaliacao AS nota
 FROM atendimento a
 JOIN cliente c ON c.id_cliente = a.id_cliente
-LEFT JOIN venda v ON v.id_venda = a.id_venda
-LEFT JOIN forma_pagamento fp ON fp.id_forma_pagamento = v.id_forma_pagamento
-LEFT JOIN item_venda iv ON iv.id_venda = v.id_venda
-LEFT JOIN servico s ON s.id_servico = iv.id_servico
+JOIN venda v ON v.id_venda = a.id_venda
+JOIN item_venda iv ON iv.id_venda = v.id_venda
+JOIN servico s ON s.id_servico = iv.id_servico
 WHERE DATE(a.data_atendimento) = CURRENT_DATE
-GROUP BY
-    a.data_atendimento,
-    c.nome,
-    c.celular,
-    fp.tipo_pagamento,
-    v.total
+GROUP BY a.id_atendimento, c.nome, v.total, v.caixinha, v.avaliacao
 ORDER BY horario DESC;
 """
 
-QUERY_RESUMO_MENSAL_GRAFICO = """
-SELECT 
-    DATE(a.data_atendimento) AS data,
-    COUNT(DISTINCT a.id_atendimento) AS total_atendimentos,
-    COALESCE(SUM(v.total), 0) AS faturamento
-FROM atendimento a
-LEFT JOIN venda v ON v.id_venda = a.id_venda
-WHERE EXTRACT(MONTH FROM a.data_atendimento) = %s 
-  AND EXTRACT(YEAR FROM a.data_atendimento) = %s
-GROUP BY DATE(a.data_atendimento)
-ORDER BY data;
+# --- QUERIES DE INSERÇÃO QUE ESTAVAM FALTANDO ---
+
+QUERY_INSERT_CLIENTE = """
+INSERT INTO cliente (nome, celular) 
+VALUES (%s, %s) 
+RETURNING id_cliente;
+"""
+
+QUERY_INSERT_ITEM_VENDA = """
+INSERT INTO item_venda (id_venda, id_servico, valor_unitario)
+VALUES (%s, %s, %s);
+"""
+
+QUERY_INSERT_ATENDIMENTO = """
+INSERT INTO atendimento (id_cliente, id_venda, observacao)
+VALUES (%s, %s, %s);
 """
 
 QUERY_RESUMO_MENSAL_GRAFICO = """
 SELECT 
     DATE(a.data_atendimento) AS data,
     COUNT(DISTINCT a.id_atendimento) AS total_atendimentos,
-    COALESCE(SUM(v.total), 0) AS faturamento
+    COALESCE(SUM(v.total), 0) AS faturamento_servicos,
+    COALESCE(SUM(v.caixinha), 0) AS total_caixinhas,
+    COALESCE(AVG(v.avaliacao), 0) AS media_avaliacao
 FROM atendimento a
-LEFT JOIN venda v ON v.id_venda = a.id_venda
+JOIN venda v ON v.id_venda = a.id_venda
 WHERE EXTRACT(MONTH FROM a.data_atendimento) = %s 
   AND EXTRACT(YEAR FROM a.data_atendimento) = %s
 GROUP BY DATE(a.data_atendimento)
-ORDER BY data;
-"""
+ORDER BY data;"""
