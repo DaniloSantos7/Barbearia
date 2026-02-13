@@ -29,8 +29,11 @@ st.markdown("""
 
 def get_connection():
     return psycopg2.connect(
-        dbname="barbearia", user="postgres", password="211308",
-        host="localhost", port="5432"
+        host=st.secrets["DB_HOST"],
+        port=st.secrets["DB_PORT"],
+        user=st.secrets["DB_USER"],
+        password=st.secrets["DB_PASS"],
+        database=st.secrets["DB_NAME"]
     )
 
 # --------------------------------
