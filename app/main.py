@@ -11,6 +11,8 @@ import plotly.express as px
 from sqlalchemy import create_engine
 from datetime import datetime
 
+fuso_br = pytz.timezone('america/Sao_Paulo')
+
 # --- CONFIGURAÇÃO DA CONEXÃO (SQLAlchemy) ---
 def get_engine():
     user = st.secrets["DB_USER"]
@@ -135,7 +137,7 @@ with t1:
     
 with t2:
     st.write("### 🔍 Filtrar Período")
-    hoje = datetime.date.today()
+    hoje = datetime.now(fuso_br).date()
     meses_nomes = {1: "Janeiro", 2: "Fevereiro", 3: "Março", 4: "Abril", 5: "Maio", 6: "Junho",
                    7: "Julho", 8: "Agosto", 9: "Setembro", 10: "Outubro", 11: "Novembro", 12: "Dezembro"}
     
