@@ -179,11 +179,11 @@ with t2:
 
 with t3:
     st.write("### 🔗 Link do Tablet")
-    url = "http://192.168.0.7:8501/formulario" 
-    qr = qrcode.make(url)
+    url_cliente = "http://Barbearia.streamlit.app/formulario"
+    qr = qrcode.make(url_cliente)
     buf = BytesIO()
     qr.save(buf, format="PNG")
     st.image(buf.getvalue(), width=250, caption="Aponte a câmera do Tablet aqui")
-    st.code(url)
+    st.code(url_cliente)
 
 conn.close()
