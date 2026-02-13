@@ -3,12 +3,13 @@ from pathlib import Path
 from io import BytesIO
 import datetime
 import urllib.parse
-
+import pytz
 import streamlit as st
 import pandas as pd
 import qrcode
 import plotly.express as px
 from sqlalchemy import create_engine
+from datetime import datetime
 
 # --- CONFIGURAÇÃO DA CONEXÃO (SQLAlchemy) ---
 def get_engine():

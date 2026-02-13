@@ -11,6 +11,10 @@ from queries.atendimentos import (
     QUERY_INSERT_ATENDIMENTO,
     QUERY_INSERT_CLIENTE    
 )
+import pytz
+from datetime import datetime
+
+fuso_br = pytz.timezone('America/Sao_Paulo')
 
 # --------------------------------
 # CONFIGURAÇÃO E CSS DE SEGURANÇA
