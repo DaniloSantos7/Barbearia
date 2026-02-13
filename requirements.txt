@@ -1,6 +1,6 @@
 streamlit
 pandas
 psycopg2-binary
-plotly
 qrcode
 pillow
+sqlalchemy
