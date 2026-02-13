@@ -9,6 +9,15 @@ import pandas as pd
 import qrcode
 import plotly.express as px
 
+from sqlalchemy import create_engine
+
+# Função para criar o motor de conexão (Engine)
+def get_engine():
+    db_url = f"postgresql://{st.secrets['DB_USER']}:{st.secrets['DB_PASS']}@{st.secrets['DB_HOST']}:{st.secrets['DB_PORT']}/{st.secrets['DB_NAME']}"
+    return create_engine(db_url)
+
+engine = get_engine()
+
 # Ajuste de caminho para imports
 sys.path.append(str(Path(__file__).parent))
 
@@ -47,7 +56,7 @@ if not st.session_state.logado:
     senha = st.text_input("Senha do Barbeiro", type="password")
     col_l1, col_l2 = st.columns(2)
     with col_l1:
-        if st.button("Entrar", use_container_width=True):
+        if st.button("Entrar", width="stretch"): # Corrigido parâmetro de largura
             if senha == "1234":
                 st.session_state.logado = True
                 st.rerun()
@@ -71,7 +80,7 @@ with header_col2:
         st.switch_page("pages/formulario.py")
 
 # --- BUSCA DE DADOS ---
-df_h = pd.read_sql(QUERY_RESUMO_HOJE, conn)
+df_h = pd.read_sql(QUERY_RESUMO_HOJE, engine)
 df_s = pd.read_sql(QUERY_RESUMO_SEMANA, conn)
 
 # --- RESUMO DE HOJE ---
