@@ -17,10 +17,16 @@ def get_engine():
     host = st.secrets["DB_HOST"]
     port = st.secrets["DB_PORT"]
     dbname = st.secrets["DB_NAME"]
+    
     db_url = f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{dbname}"
-    return create_engine(db_url)
-
-engine = get_engine()
+    
+    # pool_pre_ping=True testa a conexão antes de usar, essencial para o Supabase
+    return create_engine(
+        db_url, 
+        pool_pre_ping=True, 
+        pool_recycle=300
+    )
+engine=get_engine()
 
 # Ajuste de caminho para imports
 sys.path.append(str(Path(__file__).parent))
