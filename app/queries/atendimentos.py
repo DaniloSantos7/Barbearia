@@ -9,12 +9,12 @@ QUERY_CHECAR_ATENDIMENTO_HOJE = """
 SELECT EXISTS (
     SELECT 1 FROM atendimento 
     WHERE id_cliente = %s 
-    AND DATE(data_atendimento AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = 
-        (CURRENT_TIMESTAMP AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date
+    AND (data_atendimento AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date = 
+        (CURRENT_TIMESTAMP AT TIME ZONE 'America/Sao_Paulo')::date
 );
 """
 
-# --- QUERIES DE DASHBOARD (Ajustadas para Fuso Horário Brasil) ---
+# --- QUERIES DE DASHBOARD ---
 
 QUERY_RESUMO_HOJE = """
 SELECT
@@ -23,8 +23,8 @@ SELECT
     COALESCE(SUM(v.caixinha), 0) AS total_caixinhas
 FROM atendimento a
 JOIN venda v ON v.id_venda = a.id_venda
-WHERE DATE(a.data_atendimento AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = 
-      (CURRENT_TIMESTAMP AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date;
+WHERE (a.data_atendimento AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date = 
+      (CURRENT_TIMESTAMP AT TIME ZONE 'America/Sao_Paulo')::date;
 """
 
 QUERY_RESUMO_SEMANA = """
@@ -55,8 +55,8 @@ JOIN cliente c ON c.id_cliente = a.id_cliente
 JOIN venda v ON v.id_venda = a.id_venda
 JOIN item_venda iv ON iv.id_venda = v.id_venda
 JOIN servico s ON s.id_servico = iv.id_servico
-WHERE DATE(a.data_atendimento AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = 
-      (CURRENT_TIMESTAMP AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date
+WHERE (a.data_atendimento AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date = 
+      (CURRENT_TIMESTAMP AT TIME ZONE 'America/Sao_Paulo')::date
 GROUP BY a.id_atendimento, c.nome, c.celular, v.total, v.caixinha, v.avaliacao, a.data_atendimento
 ORDER BY a.data_atendimento DESC;
 """

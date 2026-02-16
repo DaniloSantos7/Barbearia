@@ -6,3 +6,4 @@ pillow
 sqlalchemy
 plotly
 pytz
+streamlit-autorefresh

@@ -10,8 +10,13 @@ import qrcode
 import plotly.express as px
 from sqlalchemy import create_engine
 from datetime import datetime
+from streamlit_autorefresh import st_autorefresh
 
-fuso_br = pytz.timezone('america/Sao_Paulo')
+# --- CONFIGURAÇÃO INICIAL ---
+fuso_br = pytz.timezone('America/Sao_Paulo')
+
+# Atualiza o app automaticamente a cada 120 segundos (2 minutos)
+st_autorefresh(interval=120 * 1000, key="datarefresh")
 
 # --- CONFIGURAÇÃO DA CONEXÃO (SQLAlchemy) ---
 def get_engine():
@@ -23,13 +28,13 @@ def get_engine():
     
     db_url = f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{dbname}"
     
-    # pool_pre_ping=True testa a conexão antes de usar, essencial para o Supabase
     return create_engine(
         db_url, 
         pool_pre_ping=True, 
         pool_recycle=300
     )
-engine=get_engine()
+
+engine = get_engine()
 
 # Ajuste de caminho para imports
 sys.path.append(str(Path(__file__).parent))
@@ -76,15 +81,20 @@ if not st.session_state.logado:
     st.stop()   
 
 # --- INTERFACE PRINCIPAL ---
-header_col1, header_col2 = st.columns([9, 1])
+header_col1, header_col2, header_col3 = st.columns([7, 2, 1])
 with header_col1:
     st.title("💈 Barber Dash")
 with header_col2:
+    if st.button("🔄 Atualizar Agora"):
+        st.cache_data.clear()
+        st.rerun()
+with header_col3:
     if st.button("Sair"):
         st.session_state.logado = False
         st.rerun()
 
-# --- BUSCA DE DADOS (Usando Engine para evitar travamentos) ---
+# --- BUSCA DE DADOS ---
+# Nota: Removido cache manual para garantir que o autorefresh pegue dados reais
 df_h = pd.read_sql(QUERY_RESUMO_HOJE, engine)
 df_s = pd.read_sql(QUERY_RESUMO_SEMANA, engine)
 
@@ -137,16 +147,16 @@ with t1:
     
 with t2:
     st.write("### 🔍 Filtrar Período")
-    hoje = datetime.now(fuso_br).date()
+    hoje_data = datetime.now(fuso_br).date()
     meses_nomes = {1: "Janeiro", 2: "Fevereiro", 3: "Março", 4: "Abril", 5: "Maio", 6: "Junho",
                    7: "Julho", 8: "Agosto", 9: "Setembro", 10: "Outubro", 11: "Novembro", 12: "Dezembro"}
     
     col_mes, col_ano = st.columns(2)
     with col_mes:
-        mes_nome = st.selectbox("Mês", list(meses_nomes.values()), index=hoje.month - 1)
+        mes_nome = st.selectbox("Mês", list(meses_nomes.values()), index=hoje_data.month - 1)
         mes_num = [k for k, v in meses_nomes.items() if v == mes_nome][0]
     with col_ano:
-        ano_num = st.selectbox("Ano", list(range(hoje.year - 1, hoje.year + 1)), index=1)
+        ano_num = st.selectbox("Ano", list(range(hoje_data.year - 1, hoje_data.year + 1)), index=1)
 
     df_m = pd.read_sql(QUERY_RESUMO_MENSAL_GRAFICO, engine, params=(mes_num, ano_num))
 
@@ -178,10 +188,14 @@ with t2:
 with t3:
     st.write("### 🔗 Link do Tablet")
     url_cliente = "https://barbearia-flowokbfr5bqb9szv4txmp.streamlit.app/formulario"
-    qr = qrcode.make(url_cliente)
-    buf = BytesIO()
-    qr.save(buf, format="PNG") 
-    st.image(buf.getvalue(), width=250, caption="Aponte a câmera do Tablet aqui")
-    st.code(url_cliente)
+    
+    @st.cache_resource
+    def gerar_qr_code(url):
+        qr = qrcode.make(url)
+        buf = BytesIO()
+        qr.save(buf, format="PNG") 
+        return buf.getvalue()
 
-# O engine do SQLAlchemy gerencia o fechamento automaticamente.
+    qr_img = gerar_qr_code(url_cliente)
+    st.image(qr_img, width=250, caption="Aponte a câmera do Tablet aqui")
+    st.code(url_cliente)
