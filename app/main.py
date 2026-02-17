@@ -11,6 +11,7 @@ import plotly.express as px
 from sqlalchemy import create_engine
 from datetime import datetime
 from streamlit_autorefresh import st_autorefresh
+from datetime import datetime, timedelta
 
 # --- CONFIGURAÇÃO INICIAL ---
 fuso_br = pytz.timezone('America/Sao_Paulo')
@@ -115,7 +116,17 @@ else:
 st.markdown("---")
 
 # --- TOTAL DA SEMANA ---
+# --- TOTAL DA SEMANA ---
 st.subheader("📅 Total da Semana")
+
+# Cálculo para mostrar as datas da semana atual (Segunda a Domingo)
+hoje_datetime = datetime.now(fuso_br)
+# .weekday() retorna 0 para segunda, 1 para terça...
+inicio_semana = hoje_datetime - timedelta(days=hoje_datetime.weekday())
+fim_semana = inicio_semana + timedelta(days=6)
+
+st.markdown(f"*{inicio_semana.strftime('%d/%m')} a {fim_semana.strftime('%d/%m')} (Reseta toda segunda-feira)*")
+
 c3_s, c4_s = st.columns(2)
 if not df_s.empty:
     qtd_semana = int(df_s["total_atendimentos"].sum())
