@@ -35,8 +35,8 @@ SELECT
     COALESCE(SUM(v.caixinha), 0) AS total_caixinhas
 FROM atendimento a
 JOIN venda v ON v.id_venda = a.id_venda
-WHERE a.data_atendimento AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo' >= 
-      (CURRENT_TIMESTAMP AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date - INTERVAL '6 days'
+WHERE (a.data_atendimento AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date >= 
+      date_trunc('week', CURRENT_TIMESTAMP AT TIME ZONE 'America/Sao_Paulo')::date
 GROUP BY DATE(a.data_atendimento AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')
 ORDER BY data;
 """
