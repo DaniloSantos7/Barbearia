@@ -1,0 +1,84 @@
+name: Despertador BarberFlow
+
+on:
+  schedule:
+    - cron: '*/15 * * * *' # Executa a cada 15 minutos
+  workflow_dispatch:      # Permite execução manual pelo botão no GitHub
+
+jobs:
+  wake_up_job:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v3
+
+      - name: Configurar Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Instalar Dependências
+        run: |
+          pip install selenium webdriver-manager
+
+      - name: Rodar Script de Despertar
+        run: |
+          python << END
+          from selenium import webdriver
+          from selenium.webdriver.chrome.service import Service
+          from selenium.webdriver.chrome.options import Options
+          from webdriver_manager.chrome import ChromeDriverManager
+          from selenium.webdriver.common.by import By
+          import time
+          import sys
+
+          # 1. Configurações do Navegador (Headless para o Servidor)
+          chrome_options = Options()
+          chrome_options.add_argument("--headless")
+          chrome_options.add_argument("--no-sandbox")
+          chrome_options.add_argument("--disable-dev-shm-usage")
+          chrome_options.add_argument("--window-size=1920,1080")
+
+          driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
+
+          try:
+              print("--- Iniciando Ronda BarberDash ---")
+              driver.get("https://barbearia-flowokbfr5bqb9szv4txmp.streamlit.app/")
+              
+              # Tempo de carregamento inicial
+              time.sleep(20) 
+
+              # 2. Lógica de Despertar (Procura o botão de hibernação)
+              buttons = driver.find_elements(By.TAG_NAME, "button")
+              for btn in buttons:
+                  btn_text = btn.text.lower()
+                  if "yes" in btn_text or "get this app back up" in btn_text:
+                      print("⚠️ Status: Hibernando. Clicando para despertar...")
+                      btn.click()
+                      time.sleep(25) # Aguarda o boot completo
+                      driver.refresh()
+                      time.sleep(10)
+                      break
+
+              # 3. Prova de Vida (Validação do Conteúdo)
+              # Captura o código fonte (exatamente como você usa na sua main)
+              html_da_pagina = driver.page_source
+              titulo_da_aba = driver.title
+
+              print(f"Título detectado na aba: {titulo_da_aba}")
+
+              # Verificação dupla: Título ou Conteúdo
+              if "BarberDash" in titulo_da_aba or "BarberDash" in html_da_pagina:
+                  print("✅ SUCESSO: BarberDash está online e funcional!")
+              else:
+                  print("❌ ERRO: O app carregou, mas 'BarberDash' não foi encontrado.")
+                  print("Possível tela de erro do Streamlit ou carregamento incompleto.")
+                  sys.exit(1) # Força falha para notificar você por e-mail
+
+          except Exception as e:
+              print(f"💥 Falha Crítica na Automação: {e}")
+              sys.exit(1)
+          finally:
+              driver.quit()
+              print("--- Ronda Finalizada ---")
+          END
