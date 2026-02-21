@@ -118,10 +118,18 @@ img_html = f'data:image/gif;base64,{img_base64}' if img_base64 else ""
 
 st.markdown(f"""
     <div style="display: flex; align-items: center; gap: 15px; padding: 10px 0;">
-        <img src="{img_html}" style="width: 80px; height: 80px; border-radius: 15px; object-fit: cover; background:#333;">
+        <img src="{img_html}" style="
+            width: 80px; 
+            height: 80px; 
+            border-radius: 15px; 
+            object-fit: cover; 
+            background: transparent !important; /* FORÇA O FUNDO TRANSPARENTE */
+            border: none !important;           /* REMOVE QUALQUER BORDA */
+            box-shadow: none !important;        /* REMOVE SOMBRAS QUE PARECEM QUADRADOS */
+        ">
         <div>
-            <h3 style="margin: 0;">💈 BarberFlow</h3>
-            <p style="margin: 0; opacity: 0.8;">Atendimento por ordem de chegada</p>
+            <h3 style="margin: 0; color: white;">💈 BarberFlow</h3>
+            <p style="margin: 0; opacity: 0.8; color: white;">Atendimento por ordem de chegada</p>
         </div>
     </div>
 """, unsafe_allow_html=True)

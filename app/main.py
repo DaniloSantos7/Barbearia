@@ -144,7 +144,7 @@ with t1:
                 st.metric("💵 Faturamento no Dia", f"R$ {total_dia:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
                 
                 # Formatação Moeda BR
-                for col in ["💰 Valor", "💸 Gorjeta"]:
+                for col in ["💰 Valor", "💸 Caixinha"]:
                     df_l[col] = df_l[col].map('R$ {:,.2f}'.format).str.replace('.', 'X').str.replace(',', '.').str.replace('X', ',')
                 
                 st.dataframe(df_l, use_container_width=True, hide_index=True)
@@ -184,17 +184,20 @@ with t2:
             # Gráficos
             fig_vol = px.bar(df_m, x="data_fmt", y="total_atendimentos", title="Volume de Clientes", template="plotly_dark")
             fig_vol.update_traces(marker_color='#2980b9')
-            st.plotly_chart(fig_vol, use_container_width=True)
+            fig_vol.update_layout(dragmode=False, xaxis=dict(fixedrange=True), yaxis=dict(fixedrange=True))
+            st.plotly_chart(fig_vol, use_container_width=True, config={'displayModeBar': False})
 
             fig_fat = px.bar(df_m, x="data_fmt", y="faturamento_servicos", title="Receita de Serviços", template="plotly_dark")
             fig_fat.update_traces(marker_color='#27ae60')
-            st.plotly_chart(fig_fat, use_container_width=True)
+            fig_fat.update_layout(dragmode=False, xaxis=dict(fixedrange=True), yaxis=dict(fixedrange=True))
+            st.plotly_chart(fig_fat, use_container_width=True, config={'displayModeBar': False})
 
             # Gráfico de Satisfação
             fig_nota = px.line(df_m, x="data_fmt", y="media_avaliacao", title="Evolução da Satisfação", template="plotly_dark", markers=True)
             fig_nota.update_traces(line_color='#f1c40f')
-            fig_nota.update_layout(yaxis=dict(range=[0, 5.1]))
-            st.plotly_chart(fig_nota, use_container_width=True)
+            # ADICIONE/ATUALIZE ESTA LINHA (Mantenha o range de 0 a 5.1):
+            fig_nota.update_layout(dragmode=False, xaxis=dict(fixedrange=True), yaxis=dict(range=[0, 5.1], fixedrange=True))
+            st.plotly_chart(fig_nota, use_container_width=True, config={'displayModeBar': False})
         else:
             st.warning("Sem dados para este período.")
 
