@@ -101,14 +101,18 @@ ORDER BY data;
 
 QUERY_ATENDIMENTOS_POR_DATA = """
     SELECT 
-        horario, 
-        cliente, 
-        telefone, 
-        servicos, 
-        valor, 
-        gorjeta, 
-        nota 
-    FROM public.atendimento
-    WHERE data = %s 
-    ORDER BY horario ASC
+        v.data_venda::time as "⏰ Hora",
+        c.nome || ' ' || c.sobrenome as "👤 Cliente",
+        c.celular as "📱 Celular",
+        s.nome_servico as "✂️ Corte",
+        v.total as "💰 Valor",
+        v.caixinha as "💸 Gorjeta",
+        v.avaliacao as "⭐ Nota"
+    FROM public.atendimento a
+    JOIN public.venda v ON a.id_venda = v.id_venda
+    JOIN public.cliente c ON a.id_cliente = c.id_cliente
+    JOIN public.item_venda iv ON v.id_venda = iv.id_venda
+    JOIN public.servico s ON iv.id_servico = s.id_servico
+    WHERE v.data_venda::date = %s
+    ORDER BY v.data_venda ASC
 """
