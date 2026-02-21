@@ -101,7 +101,7 @@ ORDER BY data;
 
 QUERY_ATENDIMENTOS_POR_DATA = """
     SELECT 
-        v.data_venda::time as "⏰ Hora",
+        TO_CHAR(v.data_venda AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo', 'HH24:MI') as "⏰ Hora",
         c.nome || ' ' || c.sobrenome as "👤 Cliente",
         c.celular as "📱 Celular",
         s.nome_servico as "✂️ Corte",
@@ -113,6 +113,6 @@ QUERY_ATENDIMENTOS_POR_DATA = """
     JOIN public.cliente c ON a.id_cliente = c.id_cliente
     JOIN public.item_venda iv ON v.id_venda = iv.id_venda
     JOIN public.servico s ON iv.id_servico = s.id_servico
-    WHERE v.data_venda::date = %s
+    WHERE (v.data_venda AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date = %s
     ORDER BY v.data_venda ASC
 """

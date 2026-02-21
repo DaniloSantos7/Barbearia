@@ -166,6 +166,7 @@ t1, t2, t3 = st.tabs(["📋 Agenda", "📊 Evolução Mensal", "📱 QR Cliente"
 
 with t1:
     st.write("### 📅 Consultar Agenda")
+    # Calendário já vem em português se o navegador do barbeiro estiver em PT-BR
     data_consulta = st.date_input("Escolha o dia", value=datetime.now(fuso_br).date())
 
     if engine:
@@ -174,17 +175,21 @@ with t1:
                 df_l = pd.read_sql(QUERY_ATENDIMENTOS_POR_DATA, conn, params=(data_consulta,))
             
             if not df_l.empty:
-                # Métricas usando os nomes novos das colunas
+                # --- FORMATAÇÃO PADRÃO BRASIL ---
                 total_dia = df_l["💰 Valor"].sum()
-                st.metric("Faturamento no Dia", f"R$ {total_dia:.2f}")
                 
-                # Exibe a tabela direto, pois as colunas já vêm prontas do SQL
+                # Exibe métrica com R$ e vírgula
+                st.metric("Faturamento no Dia", f"R$ {total_dia:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+                
+                # Formata as colunas de dinheiro da tabela para o padrão BR (vírgula)
+                df_l["💰 Valor"] = df_l["💰 Valor"].map('R$ {:,.2f}'.format).str.replace('.', 'X').str.replace(',', '.').str.replace('X', ',')
+                df_l["💸 Gorjeta"] = df_l["💸 Gorjeta"].map('R$ {:,.2f}'.format).str.replace('.', 'X').str.replace(',', '.').str.replace('X', ',')
+                
                 st.dataframe(df_l, use_container_width=True, hide_index=True)
             else:
                 st.warning(f"Nenhum atendimento em {data_consulta.strftime('%d/%m/%Y')}.")
         except Exception as e:
             st.error(f"Erro ao carregar agenda: {e}")
-
 with t2:
     st.write("### 🔍 Filtrar Período")
     hoje_data = datetime.now(fuso_br).date()
