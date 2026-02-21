@@ -98,10 +98,14 @@ with header_col3:
         st.session_state.logado = False
         st.rerun()
 
-# --- BUSCA DE DADOS ---
-# Nota: Removido cache manual para garantir que o autorefresh pegue dados reais
-df_h = pd.read_sql(QUERY_RESUMO_HOJE, engine)
-df_s = pd.read_sql(QUERY_RESUMO_SEMANA, engine)
+# --- BUSCA DE DADOS (Versão compatível com SQLAlchemy 2.0) ---
+try:
+    with engine.connect() as conn:
+        df_h = pd.read_sql(QUERY_RESUMO_HOJE, conn)
+        df_s = pd.read_sql(QUERY_RESUMO_SEMANA, conn)
+    # st.success("Dados carregados com sucesso!") # Opcional para testar
+except Exception as e:
+    st.error(f"Erro ao buscar dados: {e}")
 
 # --- RESUMO DE HOJE ---
 st.subheader("📍 Resumo de Hoje")
