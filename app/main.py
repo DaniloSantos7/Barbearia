@@ -166,8 +166,12 @@ t1, t2, t3 = st.tabs(["📋 Agenda", "📊 Evolução Mensal", "📱 QR Cliente"
 
 with t1:
     st.write("### 📅 Consultar Agenda")
-    # Calendário já vem em português se o navegador do barbeiro estiver em PT-BR
-    data_consulta = st.date_input("Escolha o dia", value=datetime.now(fuso_br).date())
+    # O parâmetro format="DD/MM/YYYY" garante a exibição brasileira no campo
+    data_consulta = st.date_input(
+    "Escolha o dia", 
+    value=datetime.now(fuso_br).date(),
+    format="DD/MM/YYYY"
+)
 
     if engine:
         try:
