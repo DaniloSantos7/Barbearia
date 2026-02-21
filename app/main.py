@@ -27,7 +27,9 @@ def get_engine():
     port = st.secrets["DB_PORT"]
     dbname = st.secrets["DB_NAME"]
     
-    db_url = f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{dbname}"
+    # Montamos a URL com o parâmetro de forma direta e limpa
+    # O ?sslmode=require é essencial para o Streamlit Cloud
+    db_url = f"postgresql://{user}:{password}@{host}:{port}/{dbname}?sslmode=require&prepare_threshold=0"
     
     return create_engine(
         db_url,
