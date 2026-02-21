@@ -27,15 +27,16 @@ def get_engine():
     port = st.secrets["DB_PORT"]
     dbname = st.secrets["DB_NAME"]
     
-    db_url = f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{dbname}?prepare_threshold=0"
+    db_url = f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{dbname}"
     
     return create_engine(
         db_url, 
+        # Passamos os parâmetros do Supabase Pooler por aqui, é mais seguro:
+        connect_args={
+            "options": "-c prepare_threshold=0"
+        },
         pool_pre_ping=True, 
-        pool_recycle=300,
-        # Opcional: define o tamanho da fila de conexões para não sobrecarregar o pool
-        pool_size=5,
-        max_overflow=10
+        pool_recycle=300
     )
 
 engine = get_engine()
