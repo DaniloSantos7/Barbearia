@@ -107,7 +107,7 @@ SELECT
     COALESCE(c.celular, 'Sem Tel.') as "📱 Celular",
     COALESCE(s.nome_servico, 'Serviço') as "✂️ Corte",
     COALESCE(v.total, 0) as "💰 Valor",
-    COALESCE(v.caixinha, 0) as "💸 Gorjeta",
+    COALESCE(v.caixinha, 0) as "💸 Caixinha",
     COALESCE(v.avaliacao, 0) as "⭐ Nota"
 FROM public.atendimento a
 JOIN public.venda v ON a.id_venda = v.id_venda
