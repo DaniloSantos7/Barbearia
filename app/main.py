@@ -8,60 +8,54 @@ import streamlit as st
 import pandas as pd
 import qrcode
 import plotly.express as px
-from sqlalchemy import create_engine
-from datetime import datetime
-from streamlit_autorefresh import st_autorefresh
-from datetime import datetime, timedelta
 from sqlalchemy import create_engine, event
+from datetime import datetime, timedelta
+from streamlit_autorefresh import st_autorefresh
+
+# Ajuste de caminho e import das queries (precisa ser antes da busca de dados)
+sys.path.append(str(Path(__file__).parent))
+from queries.atendimentos import *
 
 # --- CONFIGURAÇÃO INICIAL ---
 fuso_br = pytz.timezone('America/Sao_Paulo')
 
-# Atualiza o app automaticamente a cada 120 segundos (2 minutos)
+# Atualiza o app automaticamente a cada 120 segundos
 st_autorefresh(interval=120 * 1000, key="datarefresh")
 
-# --- CONFIGURAÇÃO DA CONEXÃO (SQLAlchemy) ---
+# --- CONFIGURAÇÃO DA CONEXÃO (SQLAlchemy 2.0) ---
 def get_engine():
-    import urllib.parse
     try:
         user = st.secrets["DB_USER"]
         password = urllib.parse.quote_plus(st.secrets["DB_PASS"])
         host = st.secrets["DB_HOST"]
         port = st.secrets["DB_PORT"]
         dbname = st.secrets["DB_NAME"]
-    
 
-        db_url = f"postgresql://{user}:{password}@{host}:{port}/{dbname}?sslmode=require&prepare_threshold=0"
+        # URL Limpa para o driver não se confundir
+        db_url = f"postgresql://{user}:{password}@{host}:{port}/{dbname}"
 
-        # IMPORTANTE: Criar e RETORNAR a engine
-        new_engine = create_engine(db_url, pool_pre_ping=True, pool_recycle=300)
+        # Parâmetros enviados de forma segura para o Supavisor/Postgres
+        new_engine = create_engine(
+            db_url,
+            connect_args={
+                "sslmode": "require",
+                "prepare_threshold": 0
+            },
+            pool_pre_ping=True,
+            pool_recycle=300
+        )
         return new_engine
     except Exception as e:
         st.error(f"Erro ao configurar engine: {e}")
         return None
-    
 
 engine = get_engine()
 
-# --- BUSCA DE DADOS ---
-df_h = pd.DataFrame() # Criamos um DF vazio por segurança para evitar o NameError
+# --- INICIALIZAÇÃO DE DATACOFRAMES ---
+df_h = pd.DataFrame()
 df_s = pd.DataFrame()
 
-if engine is not None:
-    try:
-        with engine.connect() as conn:
-            df_h = pd.read_sql(QUERY_RESUMO_HOJE, conn)
-            df_s = pd.read_sql(QUERY_RESUMO_SEMANA, conn)
-    except Exception as e:
-        st.error(f"Erro ao buscar dados no banco: {e}")
-else:
-    st.error("A conexão com o banco não foi estabelecida.")
-
-# Ajuste de caminho para imports
-sys.path.append(str(Path(__file__).parent))
-from queries.atendimentos import *
-
-# --- CONFIGURAÇÃO E CSS ---
+# --- CONFIGURAÇÃO DE PÁGINA E CSS ---
 st.set_page_config(page_title="BarberDash", layout="wide", initial_sidebar_state="collapsed")
 
 st.markdown("""
@@ -90,16 +84,16 @@ if not st.session_state.logado:
     senha = st.text_input("Senha do Barbeiro", type="password")
     col_l1, col_l2 = st.columns(2)
     with col_l1:
-        if st.button("Entrar", width="stretch"):
+        if st.button("Entrar", use_container_width=True):
             if senha == "1234":
                 st.session_state.logado = True
                 st.rerun()
             else:
                 st.error("Senha incorreta")
     with col_l2:
-        if st.button("Voltar ao Formulário", width="stretch"):
+        if st.button("Voltar ao Formulário", use_container_width=True):
             st.switch_page("pages/formulario.py")
-    st.stop()   
+    st.stop()
 
 # --- INTERFACE PRINCIPAL ---
 header_col1, header_col2, header_col3 = st.columns([7, 2, 1])
@@ -114,14 +108,14 @@ with header_col3:
         st.session_state.logado = False
         st.rerun()
 
-# --- BUSCA DE DADOS (Versão compatível com SQLAlchemy 2.0) ---
-try:
-    with engine.connect() as conn:
-        df_h = pd.read_sql(QUERY_RESUMO_HOJE, conn)
-        df_s = pd.read_sql(QUERY_RESUMO_SEMANA, conn)
-    # st.success("Dados carregados com sucesso!") # Opcional para testar
-except Exception as e:
-    st.error(f"Erro ao buscar dados: {e}")
+# --- BUSCA DE DADOS PRINCIPAL ---
+if engine:
+    try:
+        with engine.connect() as conn:
+            df_h = pd.read_sql(QUERY_RESUMO_HOJE, conn)
+            df_s = pd.read_sql(QUERY_RESUMO_SEMANA, conn)
+    except Exception as e:
+        st.error(f"Erro ao buscar dados: {e}")
 
 # --- RESUMO DE HOJE ---
 st.subheader("📍 Resumo de Hoje")
@@ -140,15 +134,10 @@ else:
 st.markdown("---")
 
 # --- TOTAL DA SEMANA ---
-# --- TOTAL DA SEMANA ---
 st.subheader("📅 Total da Semana")
-
-# Cálculo para mostrar as datas da semana atual (Segunda a Domingo)
 hoje_datetime = datetime.now(fuso_br)
-# .weekday() retorna 0 para segunda, 1 para terça...
 inicio_semana = hoje_datetime - timedelta(days=hoje_datetime.weekday())
 fim_semana = inicio_semana + timedelta(days=6)
-
 st.markdown(f"*{inicio_semana.strftime('%d/%m')} a {fim_semana.strftime('%d/%m')} (Reseta toda segunda-feira)*")
 
 c3_s, c4_s = st.columns(2)
@@ -167,19 +156,21 @@ st.divider()
 t1, t2, t3 = st.tabs(["📋 Agenda", "📊 Evolução Mensal", "📱 QR Cliente"])
 
 with t1:
-    df_l = pd.read_sql(QUERY_ATENDIMENTOS_HOJE, engine)
-    if not df_l.empty:
-        df_display = df_l.rename(columns={
-            "horario": "⏰ Hora", "cliente": "👤 Cliente", "telefone": "📱 Celular",
-            "servicos": "✂️ Corte", "valor": "💰 Valor", "gorjeta": "💸 Gorjeta", "nota": "⭐ Nota"
-        })
-        st.dataframe(
-            df_display[["⏰ Hora", "👤 Cliente", "📱 Celular", "✂️ Corte", "💰 Valor", "💸 Gorjeta", "⭐ Nota"]], 
-            use_container_width=True, hide_index=True
-        )
-    else:
-        st.info("Nenhum atendimento registrado hoje.")
-    
+    if engine:
+        with engine.connect() as conn:
+            df_l = pd.read_sql(QUERY_ATENDIMENTOS_HOJE, conn)
+        if not df_l.empty:
+            df_display = df_l.rename(columns={
+                "horario": "⏰ Hora", "cliente": "👤 Cliente", "telefone": "📱 Celular",
+                "servicos": "✂️ Corte", "valor": "💰 Valor", "gorjeta": "💸 Gorjeta", "nota": "⭐ Nota"
+            })
+            st.dataframe(
+                df_display[["⏰ Hora", "👤 Cliente", "📱 Celular", "✂️ Corte", "💰 Valor", "💸 Gorjeta", "⭐ Nota"]], 
+                use_container_width=True, hide_index=True
+            )
+        else:
+            st.info("Nenhum atendimento registrado hoje.")
+
 with t2:
     st.write("### 🔍 Filtrar Período")
     hoje_data = datetime.now(fuso_br).date()
@@ -193,32 +184,34 @@ with t2:
     with col_ano:
         ano_num = st.selectbox("Ano", list(range(hoje_data.year - 1, hoje_data.year + 1)), index=1)
 
-    df_m = pd.read_sql(QUERY_RESUMO_MENSAL_GRAFICO, engine, params=(mes_num, ano_num))
+    if engine:
+        with engine.connect() as conn:
+            df_m = pd.read_sql(QUERY_RESUMO_MENSAL_GRAFICO, conn, params=(mes_num, ano_num))
 
-    if not df_m.empty:
-        total_at_mes = int(df_m["total_atendimentos"].sum())
-        total_fat_mes = float(df_m["faturamento_servicos"].sum())
-        total_cax_mes = float(df_m["total_caixinhas"].sum())
+        if not df_m.empty:
+            total_at_mes = int(df_m["total_atendimentos"].sum())
+            total_fat_mes = float(df_m["faturamento_servicos"].sum())
+            total_cax_mes = float(df_m["total_caixinhas"].sum())
 
-        st.markdown(f"#### 📊 Acumulado de {mes_nome}")
-        cm1, cm2, cm3 = st.columns(3)
-        cm1.metric("✂️ Cortes", total_at_mes)
-        cm2.metric("💰 Serviços", f"R$ {total_fat_mes:.0f}")
-        cm3.metric("💸 Gorjetas", f"R$ {total_cax_mes:.0f}")
-        
-        st.divider()
-        df_m["data_fmt"] = pd.to_datetime(df_m["data"]).dt.strftime("%d/%m")
-        
-        def criar_grafico_congelado(df, y_col, titulo, cor):
-            fig = px.bar(df, x="data_fmt", y=y_col, title=titulo, template="plotly_dark")
-            fig.update_traces(marker_color=cor)
-            fig.update_layout(height=300, dragmode=False, xaxis=dict(fixedrange=True), yaxis=dict(fixedrange=True))
-            return st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+            st.markdown(f"#### 📊 Acumulado de {mes_nome}")
+            cm1, cm2, cm3 = st.columns(3)
+            cm1.metric("✂️ Cortes", total_at_mes)
+            cm2.metric("💰 Serviços", f"R$ {total_fat_mes:.0f}")
+            cm3.metric("💸 Gorjetas", f"R$ {total_cax_mes:.0f}")
+            
+            st.divider()
+            df_m["data_fmt"] = pd.to_datetime(df_m["data"]).dt.strftime("%d/%m")
+            
+            def criar_grafico_congelado(df, y_col, titulo, cor):
+                fig = px.bar(df, x="data_fmt", y=y_col, title=titulo, template="plotly_dark")
+                fig.update_traces(marker_color=cor)
+                fig.update_layout(height=300, dragmode=False, xaxis=dict(fixedrange=True), yaxis=dict(fixedrange=True))
+                return st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
 
-        criar_grafico_congelado(df_m, "total_atendimentos", "Volume de Clientes", "#2980b9")
-        criar_grafico_congelado(df_m, "faturamento_servicos", "Receita de Serviços", "#27ae60")
-    else:
-        st.warning("Sem dados para este período.")
+            criar_grafico_congelado(df_m, "total_atendimentos", "Volume de Clientes", "#2980b9")
+            criar_grafico_congelado(df_m, "faturamento_servicos", "Receita de Serviços", "#27ae60")
+        else:
+            st.warning("Sem dados para este período.")
 
 with t3:
     st.write("### 🔗 Link do Tablet")
