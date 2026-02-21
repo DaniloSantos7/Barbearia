@@ -1,0 +1,6 @@
+[browser]
+gatherUsageStats = false
+
+[language]
+# Força o Streamlit a usar o padrão brasileiro
+locale = "pt-BR"

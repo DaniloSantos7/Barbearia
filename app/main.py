@@ -12,6 +12,15 @@ from sqlalchemy import create_engine, event
 from datetime import datetime, timedelta
 from streamlit_autorefresh import st_autorefresh
 from sqlalchemy.engine import URL
+import locale
+
+try:
+    locale.setlocale(locale.LC_ALL, 'pt_BR.utf8')
+except:
+    try:
+        locale.setlocale(locale.LC_ALL, 'pt_BR')
+    except:
+        pass # Caso o servidor do Streamlit não suporte, ele segue o padrão
 
 # Ajuste de caminho e import das queries (precisa ser antes da busca de dados)
 sys.path.append(str(Path(__file__).parent))
@@ -183,7 +192,7 @@ with t1:
                 total_dia = df_l["💰 Valor"].sum()
                 
                 # Exibe métrica com R$ e vírgula
-                st.metric("Faturamento no Dia", f"R$ {total_dia:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+                st.metric("💵Faturamento no Dia", f"R$ {total_dia:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
                 
                 # Formata as colunas de dinheiro da tabela para o padrão BR (vírgula)
                 df_l["💰 Valor"] = df_l["💰 Valor"].map('R$ {:,.2f}'.format).str.replace('.', 'X').str.replace(',', '.').str.replace('X', ',')

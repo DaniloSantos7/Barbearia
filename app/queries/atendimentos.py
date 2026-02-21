@@ -102,7 +102,8 @@ ORDER BY data;
 QUERY_ATENDIMENTOS_POR_DATA = """
     SELECT 
         TO_CHAR(v.data_venda AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo', 'HH24:MI') as "⏰ Hora",
-        c.nome || ' ' || c.sobrenome as "👤 Cliente",
+        -- Coalesce evita o 'None' se o sobrenome estiver vazio
+        TRIM(COALESCE(c.nome, '') || ' ' || COALESCE(c.sobrenome, '')) as "👤 Cliente",
         c.celular as "📱 Celular",
         s.nome_servico as "✂️ Corte",
         v.total as "💰 Valor",
