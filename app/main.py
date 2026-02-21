@@ -11,6 +11,7 @@ import plotly.express as px
 from sqlalchemy import create_engine, event
 from datetime import datetime, timedelta
 from streamlit_autorefresh import st_autorefresh
+from sqlalchemy.engine import URL
 
 # Ajuste de caminho e import das queries (precisa ser antes da busca de dados)
 sys.path.append(str(Path(__file__).parent))
@@ -24,26 +25,34 @@ st_autorefresh(interval=120 * 1000, key="datarefresh")
 
 # --- CONFIGURAÇÃO DA CONEXÃO (SQLAlchemy 2.0) ---
 def get_engine():
+    import urllib.parse
     try:
         user = st.secrets["DB_USER"]
-        password = urllib.parse.quote_plus(st.secrets["DB_PASS"])
+        password = st.secrets["DB_PASS"]
         host = st.secrets["DB_HOST"]
-        port = st.secrets["DB_PORT"]
+        port = int(st.secrets["DB_PORT"])
         dbname = st.secrets["DB_NAME"]
 
-        # URL Limpa para o driver não se confundir
-        db_url = f"postgresql://{user}:{password}@{host}:{port}/{dbname}"
-
-        # Parâmetros enviados de forma segura para o Supavisor/Postgres
-        new_engine = create_engine(
-            db_url,
-            connect_args={
+        # Montamos o objeto URL de forma técnica
+        # O segredo: 'options' é onde o Supabase/Supavisor lê o threshold
+        connection_url = URL.create(
+            drivername="postgresql+psycopg2",
+            username=user,
+            password=password,
+            host=host,
+            port=port,
+            database=dbname,
+            query={
                 "sslmode": "require",
-                "prepare_threshold": 0
-            },
+                "options": "-c prepare_threshold=0"
+            }
+        )
+        new_engine = create_engine(
+            connection_url,
             pool_pre_ping=True,
             pool_recycle=300
         )
+
         return new_engine
     except Exception as e:
         st.error(f"Erro ao configurar engine: {e}")
