@@ -30,12 +30,12 @@ def get_engine():
     db_url = f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{dbname}"
     
     return create_engine(
-        db_url, 
-        # Passamos os parâmetros do Supabase Pooler por aqui, é mais seguro:
+        db_url,
         connect_args={
+            # O comando correto para o driver enviar ao servidor é via '-c'
             "options": "-c prepare_threshold=0"
         },
-        pool_pre_ping=True, 
+        pool_pre_ping=True,
         pool_recycle=300
     )
 
