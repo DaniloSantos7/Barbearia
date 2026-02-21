@@ -14,27 +14,25 @@ from streamlit_autorefresh import st_autorefresh
 from sqlalchemy.engine import URL
 import locale
 
+# --- CONFIGURAÇÃO REGIONAL ---
 try:
     locale.setlocale(locale.LC_ALL, 'pt_BR.utf8')
 except:
     try:
         locale.setlocale(locale.LC_ALL, 'pt_BR')
     except:
-        pass # Caso o servidor do Streamlit não suporte, ele segue o padrão
+        pass 
 
-# Ajuste de caminho e import das queries (precisa ser antes da busca de dados)
+# Ajuste de caminho e import das queries
 sys.path.append(str(Path(__file__).parent))
 from queries.atendimentos import *
 
 # --- CONFIGURAÇÃO INICIAL ---
 fuso_br = pytz.timezone('America/Sao_Paulo')
-
-# Atualiza o app automaticamente a cada 120 segundos
 st_autorefresh(interval=120 * 1000, key="datarefresh")
 
-# --- CONFIGURAÇÃO DA CONEXÃO (SQLAlchemy 2.0) ---
+# --- CONFIGURAÇÃO DA CONEXÃO ---
 def get_engine():
-    import urllib.parse
     try:
         user = st.secrets["DB_USER"]
         password = st.secrets["DB_PASS"]
@@ -42,8 +40,6 @@ def get_engine():
         port = int(st.secrets["DB_PORT"])
         dbname = st.secrets["DB_NAME"]
 
-        # Montamos o objeto URL de forma técnica
-        # O segredo: 'options' é onde o Supabase/Supavisor lê o threshold
         connection_url = URL.create(
             drivername="postgresql+psycopg2",
             username=user,
@@ -51,43 +47,25 @@ def get_engine():
             host=host,
             port=port,
             database=dbname,
-            query={
-                "sslmode": "require",
-                "options": "-c prepare_threshold=0"
-            }
+            query={"sslmode": "require", "options": "-c prepare_threshold=0"}
         )
-        new_engine = create_engine(
-            connection_url,
-            pool_pre_ping=True,
-            pool_recycle=300
-        )
-
-        return new_engine
+        return create_engine(connection_url, pool_pre_ping=True, pool_recycle=300)
     except Exception as e:
         st.error(f"Erro ao configurar engine: {e}")
         return None
 
 engine = get_engine()
-
-# --- INICIALIZAÇÃO DE DATACOFRAMES ---
 df_h = pd.DataFrame()
 df_s = pd.DataFrame()
 
-# --- CONFIGURAÇÃO DE PÁGINA E CSS ---
+# --- CONFIGURAÇÃO DE PÁGINA ---
 st.set_page_config(page_title="BarberDash", layout="wide", initial_sidebar_state="collapsed")
 
 st.markdown("""
     <style>
-        [data-testid="stSidebarNav"], [data-testid="stSidebar"], button[kind="header"] {
-            display: none !important;
-        }
+        [data-testid="stSidebarNav"], [data-testid="stSidebar"], button[kind="header"] { display: none !important; }
         .block-container { padding-top: 1rem; }
-        div[data-testid="stMetric"] {
-            background-color: #1E1E1E;
-            border: 1px solid #333;
-            padding: 15px;
-            border-radius: 12px;
-        }
+        div[data-testid="stMetric"] { background-color: #1E1E1E; border: 1px solid #333; padding: 15px; border-radius: 12px; }
         [data-testid="stMetricValue"] { color: #FFFFFF !important; font-size: 1.8rem !important; }
         [data-testid="stMetricLabel"] p { color: #BBBBBB !important; }
     </style>
@@ -142,45 +120,19 @@ if not df_h.empty:
     fat_hoje = float(df_h["faturamento_servicos"].fillna(0).iloc[0])
     caixa_hoje = float(df_h["total_caixinhas"].fillna(0).iloc[0])
     c1.metric("✂️ Atendimentos", int(df_h["total_atendimentos"].fillna(0).iloc[0]))
-    c2.metric("💰 Faturamento", f"R$ {fat_hoje:.0f}")
-    c3.metric("💸 Caixinhas", f"R$ {caixa_hoje:.0f}")
+    c2.metric("💰 Faturamento", f"R$ {fat_hoje:,.0f}".replace(',', '.'))
+    c3.metric("💸 Caixinhas", f"R$ {caixa_hoje:,.0f}".replace(',', '.'))
 else:
-    c1.metric("✂️ Atendimentos", 0)
-    c2.metric("💰 Faturamento", "R$ 0")
-    c3.metric("💸 Caixinhas", "R$ 0")
+    c1.metric("✂️ Atendimentos", 0); c2.metric("💰 Faturamento", "R$ 0"); c3.metric("💸 Caixinhas", "R$ 0")
 
 st.markdown("---")
-
-# --- TOTAL DA SEMANA ---
-st.subheader("📅 Total da Semana")
-hoje_datetime = datetime.now(fuso_br)
-inicio_semana = hoje_datetime - timedelta(days=hoje_datetime.weekday())
-fim_semana = inicio_semana + timedelta(days=6)
-st.markdown(f"*{inicio_semana.strftime('%d/%m')} a {fim_semana.strftime('%d/%m')} (Reseta toda segunda-feira)*")
-
-c3_s, c4_s = st.columns(2)
-if not df_s.empty:
-    qtd_semana = int(df_s["total_atendimentos"].sum())
-    fat_semana = float(df_s["faturamento_servicos"].sum())
-    c3_s.metric("✂️ Quantidade Total", qtd_semana)
-    c4_s.metric("💵 Faturamento", f"R$ {fat_semana:.0f}")
-else:
-    c3_s.metric("✂️ Quantidade Total", 0)
-    c4_s.metric("💵 Faturamento", "R$ 0")
-
-st.divider()
 
 # --- ABAS ---
 t1, t2, t3 = st.tabs(["📋 Agenda", "📊 Evolução Mensal", "📱 QR Cliente"])
 
 with t1:
     st.write("### 📅 Consultar Agenda")
-    # O parâmetro format="DD/MM/YYYY" garante a exibição brasileira no campo
-    data_consulta = st.date_input(
-    "Escolha o dia", 
-    value=datetime.now(fuso_br).date(),
-    format="DD/MM/YYYY"
-)
+    data_consulta = st.date_input("Escolha o dia", value=datetime.now(fuso_br).date(), format="DD/MM/YYYY")
 
     if engine:
         try:
@@ -188,21 +140,19 @@ with t1:
                 df_l = pd.read_sql(QUERY_ATENDIMENTOS_POR_DATA, conn, params=(data_consulta,))
             
             if not df_l.empty:
-                # --- FORMATAÇÃO PADRÃO BRASIL ---
                 total_dia = df_l["💰 Valor"].sum()
+                st.metric("💵 Faturamento no Dia", f"R$ {total_dia:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
                 
-                # Exibe métrica com R$ e vírgula
-                st.metric("💵Faturamento no Dia", f"R$ {total_dia:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
-                
-                # Formata as colunas de dinheiro da tabela para o padrão BR (vírgula)
-                df_l["💰 Valor"] = df_l["💰 Valor"].map('R$ {:,.2f}'.format).str.replace('.', 'X').str.replace(',', '.').str.replace('X', ',')
-                df_l["💸 Gorjeta"] = df_l["💸 Gorjeta"].map('R$ {:,.2f}'.format).str.replace('.', 'X').str.replace(',', '.').str.replace('X', ',')
+                # Formatação Moeda BR
+                for col in ["💰 Valor", "💸 Gorjeta"]:
+                    df_l[col] = df_l[col].map('R$ {:,.2f}'.format).str.replace('.', 'X').str.replace(',', '.').str.replace('X', ',')
                 
                 st.dataframe(df_l, use_container_width=True, hide_index=True)
             else:
                 st.warning(f"Nenhum atendimento em {data_consulta.strftime('%d/%m/%Y')}.")
         except Exception as e:
             st.error(f"Erro ao carregar agenda: {e}")
+
 with t2:
     st.write("### 🔍 Filtrar Período")
     hoje_data = datetime.now(fuso_br).date()
@@ -221,41 +171,37 @@ with t2:
             df_m = pd.read_sql(QUERY_RESUMO_MENSAL_GRAFICO, conn, params=(mes_num, ano_num))
 
         if not df_m.empty:
-            total_at_mes = int(df_m["total_atendimentos"].sum())
-            total_fat_mes = float(df_m["faturamento_servicos"].sum())
-            total_cax_mes = float(df_m["total_caixinhas"].sum())
-
             st.markdown(f"#### 📊 Acumulado de {mes_nome}")
-            cm1, cm2, cm3 = st.columns(3)
-            cm1.metric("✂️ Cortes", total_at_mes)
-            cm2.metric("💰 Serviços", f"R$ {total_fat_mes:.0f}")
-            cm3.metric("💸 Gorjetas", f"R$ {total_cax_mes:.0f}")
+            cm1, cm2, cm3, cm4 = st.columns(4)
+            cm1.metric("✂️ Cortes", int(df_m["total_atendimentos"].sum()))
+            cm2.metric("💰 Serviços", f"R$ {df_m['faturamento_servicos'].sum():,.0f}".replace(',', '.'))
+            cm3.metric("💸 Gorjetas", f"R$ {df_m['total_caixinhas'].sum():,.0f}".replace(',', '.'))
+            cm4.metric("⭐ Avaliação", f"{df_m['media_avaliacao'].mean():.1f} / 5")
             
             st.divider()
             df_m["data_fmt"] = pd.to_datetime(df_m["data"]).dt.strftime("%d/%m")
             
-            def criar_grafico_congelado(df, y_col, titulo, cor):
-                fig = px.bar(df, x="data_fmt", y=y_col, title=titulo, template="plotly_dark")
-                fig.update_traces(marker_color=cor)
-                fig.update_layout(height=300, dragmode=False, xaxis=dict(fixedrange=True), yaxis=dict(fixedrange=True))
-                return st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+            # Gráficos
+            fig_vol = px.bar(df_m, x="data_fmt", y="total_atendimentos", title="Volume de Clientes", template="plotly_dark")
+            fig_vol.update_traces(marker_color='#2980b9')
+            st.plotly_chart(fig_vol, use_container_width=True)
 
-            criar_grafico_congelado(df_m, "total_atendimentos", "Volume de Clientes", "#2980b9")
-            criar_grafico_congelado(df_m, "faturamento_servicos", "Receita de Serviços", "#27ae60")
+            fig_fat = px.bar(df_m, x="data_fmt", y="faturamento_servicos", title="Receita de Serviços", template="plotly_dark")
+            fig_fat.update_traces(marker_color='#27ae60')
+            st.plotly_chart(fig_fat, use_container_width=True)
+
+            # Gráfico de Satisfação
+            fig_nota = px.line(df_m, x="data_fmt", y="media_avaliacao", title="Evolução da Satisfação", template="plotly_dark", markers=True)
+            fig_nota.update_traces(line_color='#f1c40f')
+            fig_nota.update_layout(yaxis=dict(range=[0, 5.1]))
+            st.plotly_chart(fig_nota, use_container_width=True)
         else:
             st.warning("Sem dados para este período.")
 
 with t3:
     st.write("### 🔗 Link do Tablet")
     url_cliente = "https://barbearia-flowokbfr5bqb9szv4txmp.streamlit.app/formulario"
-    
-    @st.cache_resource
-    def gerar_qr_code(url):
-        qr = qrcode.make(url)
-        buf = BytesIO()
-        qr.save(buf, format="PNG") 
-        return buf.getvalue()
-
-    qr_img = gerar_qr_code(url_cliente)
-    st.image(qr_img, width=250, caption="Aponte a câmera do Tablet aqui")
+    qr_img = qrcode.make(url_cliente)
+    buf = BytesIO(); qr_img.save(buf, format="PNG")
+    st.image(buf.getvalue(), width=250, caption="Aponte a câmera do Tablet aqui")
     st.code(url_cliente)
