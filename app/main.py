@@ -23,23 +23,39 @@ st_autorefresh(interval=120 * 1000, key="datarefresh")
 # --- CONFIGURAÇÃO DA CONEXÃO (SQLAlchemy) ---
 def get_engine():
     import urllib.parse
-    user = st.secrets["DB_USER"]
-    password = urllib.parse.quote_plus(st.secrets["DB_PASS"])
-    host = st.secrets["DB_HOST"]
-    port = st.secrets["DB_PORT"]
-    dbname = st.secrets["DB_NAME"]
+    try:
+        user = st.secrets["DB_USER"]
+        password = urllib.parse.quote_plus(st.secrets["DB_PASS"])
+        host = st.secrets["DB_HOST"]
+        port = st.secrets["DB_PORT"]
+        dbname = st.secrets["DB_NAME"]
     
-    # Montamos a URL com o parâmetro de forma direta e limpa
-    # O ?sslmode=require é essencial para o Streamlit Cloud
-    db_url = f"postgresql://{user}:{password}@{host}:{port}/{dbname}?sslmode=require&prepare_threshold=0"
+
+        db_url = f"postgresql://{user}:{password}@{host}:{port}/{dbname}?sslmode=require&prepare_threshold=0"
+
+        # IMPORTANTE: Criar e RETORNAR a engine
+        new_engine = create_engine(db_url, pool_pre_ping=True, pool_recycle=300)
+        return new_engine
+    except Exception as e:
+        st.error(f"Erro ao configurar engine: {e}")
+        return None
     
-    engine = create_engine(
-        db_url,
-        pool_pre_ping=True,
-        pool_recycle=300
-    )
 
 engine = get_engine()
+
+# --- BUSCA DE DADOS ---
+df_h = pd.DataFrame() # Criamos um DF vazio por segurança para evitar o NameError
+df_s = pd.DataFrame()
+
+if engine is not None:
+    try:
+        with engine.connect() as conn:
+            df_h = pd.read_sql(QUERY_RESUMO_HOJE, conn)
+            df_s = pd.read_sql(QUERY_RESUMO_SEMANA, conn)
+    except Exception as e:
+        st.error(f"Erro ao buscar dados no banco: {e}")
+else:
+    st.error("A conexão com o banco não foi estabelecida.")
 
 # Ajuste de caminho para imports
 sys.path.append(str(Path(__file__).parent))
