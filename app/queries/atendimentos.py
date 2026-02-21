@@ -108,7 +108,7 @@ QUERY_ATENDIMENTOS_POR_DATA = """
         valor, 
         gorjeta, 
         nota 
-    FROM atendimentos 
+    FROM public.atendimento
     WHERE data = %s 
     ORDER BY horario ASC
 """
