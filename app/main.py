@@ -22,6 +22,7 @@ st_autorefresh(interval=120 * 1000, key="datarefresh")
 
 # --- CONFIGURAÇÃO DA CONEXÃO (SQLAlchemy) ---
 def get_engine():
+    import urllib.parse
     user = st.secrets["DB_USER"]
     password = urllib.parse.quote_plus(st.secrets["DB_PASS"])
     host = st.secrets["DB_HOST"]
@@ -30,7 +31,7 @@ def get_engine():
     
     # Montamos a URL com o parâmetro de forma direta e limpa
     # O ?sslmode=require é essencial para o Streamlit Cloud
-    db_url = f"postgresql://{user}:{password}@{host}:{port}/{dbname}?sslmode=require"
+    db_url = f"postgresql://{user}:{password}@{host}:{port}/{dbname}?sslmode=require&prepare_threshold=0"
     
     engine = create_engine(
         db_url,
