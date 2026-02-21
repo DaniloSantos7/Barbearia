@@ -165,20 +165,46 @@ st.divider()
 t1, t2, t3 = st.tabs(["📋 Agenda", "📊 Evolução Mensal", "📱 QR Cliente"])
 
 with t1:
+    st.write("### 📅 Consultar Agenda")
+    
+    # 1. Seletor de Data (Inicia com a data de hoje do fuso BR)
+    data_consulta = st.date_input("Escolha o dia", value=datetime.now(fuso_br).date())
+
     if engine:
-        with engine.connect() as conn:
-            df_l = pd.read_sql(QUERY_ATENDIMENTOS_HOJE, conn)
-        if not df_l.empty:
-            df_display = df_l.rename(columns={
-                "horario": "⏰ Hora", "cliente": "👤 Cliente", "telefone": "📱 Celular",
-                "servicos": "✂️ Corte", "valor": "💰 Valor", "gorjeta": "💸 Gorjeta", "nota": "⭐ Nota"
-            })
-            st.dataframe(
-                df_display[["⏰ Hora", "👤 Cliente", "📱 Celular", "✂️ Corte", "💰 Valor", "💸 Gorjeta", "⭐ Nota"]], 
-                use_container_width=True, hide_index=True
-            )
-        else:
-            st.info("Nenhum atendimento registrado hoje.")
+        try:
+            with engine.connect() as conn:
+                # 2. Busca os dados passando a data selecionada como parâmetro
+                df_l = pd.read_sql(QUERY_ATENDIMENTOS_POR_DATA, conn, params=(data_consulta,))
+            
+            if not df_l.empty:
+                # 3. Resumo financeiro rápido do dia selecionado
+                total_dia = df_l["valor"].sum()
+                atendimentos_dia = len(df_l)
+                
+                col_res1, col_res2 = st.columns(2)
+                col_res1.metric("Clientes no Dia", atendimentos_dia)
+                col_res2.metric("Faturamento no Dia", f"R$ {total_dia:.2f}")
+                
+                # 4. Formatação e exibição da tabela
+                df_display = df_l.rename(columns={
+                    "horario": "⏰ Hora", 
+                    "cliente": "👤 Cliente", 
+                    "telefone": "📱 Celular",
+                    "servicos": "✂️ Corte", 
+                    "valor": "💰 Valor", 
+                    "gorjeta": "💸 Gorjeta", 
+                    "nota": "⭐ Nota"
+                })
+                
+                st.dataframe(
+                    df_display[["⏰ Hora", "👤 Cliente", "📱 Celular", "✂️ Corte", "💰 Valor", "💸 Gorjeta", "⭐ Nota"]], 
+                    use_container_width=True, 
+                    hide_index=True
+                )
+            else:
+                st.warning(f"Nenhum atendimento registrado em {data_consulta.strftime('%d/%m/%Y')}.")
+        except Exception as e:
+            st.error(f"Erro ao carregar agenda: {e}")
 
 with t2:
     st.write("### 🔍 Filtrar Período")

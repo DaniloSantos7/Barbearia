@@ -98,3 +98,17 @@ WHERE EXTRACT(MONTH FROM a.data_atendimento AT TIME ZONE 'UTC' AT TIME ZONE 'Ame
 GROUP BY DATE(a.data_atendimento AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')
 ORDER BY data;
 """
+
+QUERY_ATENDIMENTOS_POR_DATA = """
+    SELECT 
+        horario, 
+        cliente, 
+        telefone, 
+        servicos, 
+        valor, 
+        gorjeta, 
+        nota 
+    FROM atendimentos 
+    WHERE data = %s 
+    ORDER BY horario ASC
+"""
