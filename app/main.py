@@ -30,22 +30,13 @@ def get_engine():
     
     # Montamos a URL com o parâmetro de forma direta e limpa
     # O ?sslmode=require é essencial para o Streamlit Cloud
-    db_url = f"postgresql://{user}:{password}@{host}:{port}/{dbname}"
+    db_url = f"postgresql://{user}:{password}@{host}:{port}/{dbname}?sslmode=require"
     
     engine = create_engine(
         db_url,
         pool_pre_ping=True,
         pool_recycle=300
     )
-    
-
-    @event.listens_for(engine, "connect")
-    def set_prepare_threshold(dbapi_connection, connection_record):
-        cursor = dbapi_connection.cursor()
-        cursor.execute("SET prepare_threshold = 0")
-        cursor.close()
-    
-    return engine
 
 engine = get_engine()
 
