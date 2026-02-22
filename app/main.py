@@ -242,15 +242,28 @@ with t3:
 
         if not df_m.empty:
             st.markdown(f"#### 📊 Acumulado de {mes_nome}")
-            cm1, cm2, cm3, cm4 = st.columns(4)
-            cm1.metric("✂️ Cortes", int(df_m["total_atendimentos"].sum()))
+            
+            # --- CÁLCULOS DOS VALORES ---
             valor_servicos = df_m['faturamento_servicos'].sum()
-            cm2.metric("💰 Serviços", f"R$ {valor_servicos:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
             valor_caixinhas = df_m['total_caixinhas'].sum()
+            valor_total_geral = valor_servicos + valor_caixinhas  # Soma de tudo
+            
+            # --- EXIBIÇÃO EM 5 COLUNAS ---
+            cm1, cm2, cm3, cm4, cm5 = st.columns(5)
+            
+            cm1.metric("✂️ Cortes", int(df_m["total_atendimentos"].sum()))
+            
+            cm2.metric("💰 Serviços", f"R$ {valor_servicos:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+            
             cm3.metric("💸 Caixinhas", f"R$ {valor_caixinhas:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
-            cm4.metric("⭐ Avaliação", f"{df_m['media_avaliacao'].mean():.1f} / 5")
+            
+            # Nova Métrica de Total Geral
+            cm4.metric("📈 Total Geral", f"R$ {valor_total_geral:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+            
+            cm5.metric("⭐ Avaliação", f"{df_m['media_avaliacao'].mean():.1f} / 5")
             
             st.divider()
+            
             df_m["data_fmt"] = pd.to_datetime(df_m["data"]).dt.strftime("%d/%m")
             
             # Gráficos
