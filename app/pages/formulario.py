@@ -201,7 +201,7 @@ elif st.session_state.step == "CADASTRO":
 
 elif st.session_state.step == "FORMULARIO":
     user = st.session_state.user_data
-    st.success(f"Logado como: **{user['nome']}**")
+    st.success(f"Bem-vindo de volta: **{user['nome']}**")
     
     conn = get_connection(); cur = conn.cursor()
     cur.execute("SELECT id_servico, nome_servico, preco FROM public.servico ORDER BY nome_servico")
