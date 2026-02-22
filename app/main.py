@@ -182,22 +182,51 @@ with t2:
             df_m["data_fmt"] = pd.to_datetime(df_m["data"]).dt.strftime("%d/%m")
             
             # Gráficos
-            fig_vol = px.bar(df_m, x="data_fmt", y="total_atendimentos", title="Volume de Clientes", template="plotly_dark")
-            fig_vol.update_traces(marker_color='#2980b9')
-            fig_vol.update_layout(dragmode=False, xaxis=dict(fixedrange=True), yaxis=dict(fixedrange=True))
+            # --- GRÁFICO 1: VOLUME ---
+            fig_vol = px.bar(
+                df_m, x="data_fmt", y="total_atendimentos", 
+                title="Volume de Clientes", template="plotly_dark",
+                labels={"data_fmt": "Data", "total_atendimentos": "Clientes"}
+            )
+            fig_vol.update_traces(
+                marker_color='#2980b9',
+                hovertemplate="<b>Data:</b> %{x}<br><b>Clientes:</b> %{y}<extra></extra>"
+            )
+            fig_vol.update_layout(dragmode=False, xaxis=dict(fixedrange=True), yaxis=dict(fixedrange=True), bargap=0.3)
             st.plotly_chart(fig_vol, use_container_width=True, config={'displayModeBar': False})
 
-            fig_fat = px.bar(df_m, x="data_fmt", y="faturamento_servicos", title="Receita de Serviços", template="plotly_dark")
-            fig_fat.update_traces(marker_color='#27ae60')
-            fig_fat.update_layout(dragmode=False, xaxis=dict(fixedrange=True), yaxis=dict(fixedrange=True))
+
+            # --- GRÁFICO 2: FATURAMENTO ---
+            fig_fat = px.bar(
+                df_m, x="data_fmt", y="faturamento_servicos", 
+                title="Receita de Serviços", template="plotly_dark",
+                labels={"data_fmt": "Data", "faturamento_servicos": "Receita"}
+            )
+            fig_fat.update_traces(
+                marker_color='#27ae60',
+                hovertemplate="<b>Data:</b> %{x}<br><b>Receita:</b> R$ %{y:,.2f}<extra></extra>"
+            )
+            fig_fat.update_layout(dragmode=False, xaxis=dict(fixedrange=True), yaxis=dict(fixedrange=True), bargap=0.3)
             st.plotly_chart(fig_fat, use_container_width=True, config={'displayModeBar': False})
 
-            # Gráfico de Satisfação
-            fig_nota = px.line(df_m, x="data_fmt", y="media_avaliacao", title="Evolução da Satisfação", template="plotly_dark", markers=True)
-            fig_nota.update_traces(line_color='#f1c40f')
-            # ADICIONE/ATUALIZE ESTA LINHA (Mantenha o range de 0 a 5.1):
-            fig_nota.update_layout(dragmode=False, xaxis=dict(fixedrange=True), yaxis=dict(range=[0, 5.1], fixedrange=True))
+            # --- GRÁFICO 3: SATISFAÇÃO (ESTRELAS) ---
+            fig_nota = px.line(
+                df_m, x="data_fmt", y="media_avaliacao", 
+                title="Evolução da Satisfação", template="plotly_dark", 
+                markers=True,
+                labels={"data_fmt": "Data", "media_avaliacao": "Nota Média"}
+            )
+            fig_nota.update_traces(
+                line_color='#f1c40f',
+                hovertemplate="<b>Data:</b> %{x}<br><b>Nota:</b> %{y:.1f} ⭐<extra></extra>"
+            )
+            fig_nota.update_layout(
+                dragmode=False, 
+                xaxis=dict(fixedrange=True), 
+                yaxis=dict(range=[0, 5.1], fixedrange=True)
+            )
             st.plotly_chart(fig_nota, use_container_width=True, config={'displayModeBar': False})
+            
         else:
             st.warning("Sem dados para este período.")
 
