@@ -125,8 +125,11 @@ def get_base64_of_bin_file(bin_file):
     return ""
 
 def reset_form():
-    for key in ["servicos", "pagamento", "caixinha", "avaliacao"]:
-        if key in st.session_state: del st.session_state[key]
+    # Adicionamos 'is_new_user' e 'temp_celular' na lista de limpeza
+    keys_to_delete = ["servicos", "pagamento", "caixinha", "avaliacao", "is_new_user", "temp_celular"]
+    for key in keys_to_delete:
+        if key in st.session_state: 
+            del st.session_state[key]
     st.session_state.step = "LOGIN"
     st.session_state.user_data = None
 
@@ -225,14 +228,19 @@ elif st.session_state.step == "CADASTRO":
             id_novo = cur.fetchone()[0]
             conn.commit()
             st.session_state.user_data = {"id": id_novo, "nome": novo_nome}
+            st.session_state.is_new_user = True 
             st.session_state.step = "FORMULARIO"
             cur.close(); conn.close()
             st.rerun()
 
 elif st.session_state.step == "FORMULARIO":
     user = st.session_state.user_data
-    st.success(f"Bem-vindo de volta: **{user['nome']}**")
+    primeiro_nome = user['nome'].split()[0]
     
+    if st.session_state.get("is_new_user"):
+        st.success(f"🎉 É um prazer ter você aqui, **{primeiro_nome}**! Escolha seus serviços abaixo:")
+    else:
+        st.success(f"💈 Bem-vindo de volta, **{primeiro_nome}**! Que bom ver você novamente.")
     conn = get_connection(); cur = conn.cursor()
     cur.execute("SELECT id_servico, nome_servico, preco FROM public.servico ORDER BY nome_servico")
     servico_dict = {n: (i, p) for i, n, p in cur.fetchall()}
