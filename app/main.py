@@ -175,7 +175,7 @@ with t2:
             cm1, cm2, cm3, cm4 = st.columns(4)
             cm1.metric("✂️ Cortes", int(df_m["total_atendimentos"].sum()))
             cm2.metric("💰 Serviços", f"R$ {df_m['faturamento_servicos'].sum():,.0f}".replace(',', '.'))
-            cm3.metric("💸 Gorjetas", f"R$ {df_m['total_caixinhas'].sum():,.0f}".replace(',', '.'))
+            cm3.metric("💸 Caixinhas", f"R$ {df_m['total_caixinhas'].sum():,.0f}".replace(',', '.'))
             cm4.metric("⭐ Avaliação", f"{df_m['media_avaliacao'].mean():.1f} / 5")
             
             st.divider()

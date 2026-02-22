@@ -49,7 +49,7 @@ SELECT
     COALESCE(c.celular, 'Sem Tel.') AS telefone,
     COALESCE(STRING_AGG(s.nome_servico, ', '), 'Serviço') AS servicos,
     COALESCE(v.total, 0) AS valor,
-    COALESCE(v.caixinha, 0) AS gorjeta,
+    COALESCE(v.caixinha, 0) AS Caixinhas,
     COALESCE(v.avaliacao, 0) AS nota
 FROM public.atendimento a
 JOIN public.cliente c ON c.id_cliente = a.id_cliente
