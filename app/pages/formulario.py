@@ -21,6 +21,11 @@ fuso_br = pytz.timezone('America/Sao_Paulo')
 # --------------------------------
 st.set_page_config(page_title="Barbearia", layout="centered")
 
+# --------------------------------
+# CONFIGURAÇÃO E CSS
+# --------------------------------
+st.set_page_config(page_title="Barbearia", layout="centered")
+
 st.markdown("""
     <style>
         [data-testid="stSidebarNav"], [data-testid="stSidebar"], button[kind="header"] {
@@ -52,27 +57,34 @@ st.markdown("""
             box-shadow: 0 4px 15px rgba(0,0,0,0.3);
         }
 
-        /* --- NOVA LÓGICA: ESTICAR BULLET SEM QUEBRAR TEXTO --- */
-        span[data-baseweb="tag"] {
-            max-width: 1000px !important; /* Permite que a tag cresça */
-            width: auto !important;       /* Estica conforme o conteúdo */
-            white-space: nowrap !important; /* PROÍBE a quebra de linha */
-            display: inline-flex !important;
-            align-items: center !important;
-            padding: 5px 10px !important;
-            height: auto !important;
+        /* --- CORREÇÃO DEFINITIVA: ESTICAR TAGS SEM SOBREPOSIÇÃO --- */
+        
+        /* Ajusta o container para não esmagar as tags e permitir que fiquem lado a lado */
+        div[data-baseweb="select"] > div:first-child {
+            display: flex !important;
+            flex-wrap: wrap !important; /* Permite que novas tags rolem para baixo se necessário */
+            gap: 8px !important;        /* Dá espaço entre um bullet e outro */
+            padding: 5px !important;
         }
 
-        /* Garante que o texto interno não sofra truncamento */
+        /* Ajusta o bullet (a tag vermelha) */
+        span[data-baseweb="tag"] {
+            max-width: none !important;    /* Libera a largura total */
+            width: auto !important;         /* Estica conforme o texto */
+            white-space: nowrap !important; /* Proíbe quebra de linha no texto */
+            display: inline-flex !important;
+            flex-shrink: 0 !important;      /* Impede que o Streamlit "esmague" o balão */
+            padding: 4px 10px !important;
+            height: auto !important;
+            background-color: #ff4b4b !important;
+        }
+
+        /* Garante que o texto dentro da tag não suma nem vire reticências */
         span[data-baseweb="tag"] > span {
             overflow: visible !important;
             text-overflow: clip !important;
             white-space: nowrap !important;
-        }
-
-        /* Permite que o container de seleção aceite as tags largas */
-        div[data-baseweb="select"] {
-            overflow-x: hidden !important;
+            display: block !important;
         }
     </style>
 """, unsafe_allow_html=True)
