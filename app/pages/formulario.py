@@ -27,6 +27,7 @@ st.markdown("""
             display: none !important;
         }
         .block-container { padding-top: 2rem; }
+        
         /* Estilo do Card de Agradecimento */
         .thank-you-container {
             text-align: center;
@@ -36,17 +37,33 @@ st.markdown("""
             border: 1px solid #333;
             margin-top: 10px;
         }
+        
+        /* Botão Instagram sem sublinhado */
         .insta-btn {
             background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
             color: white !important;
             padding: 15px 30px;
             border-radius: 12px;
-            text-decoration: none;
+            text-decoration: none !important; /* Remove o sublinhado */
             font-weight: bold;
             font-size: 1.1rem;
             display: inline-block;
             margin: 20px 0;
             box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+
+        /* --- FORÇA O TEXTO DOS SERVIÇOS A FICAR COMPLETO --- */
+        span[data-baseweb="tag"] {
+            max-width: none !important;
+            height: auto !important;
+        }
+        div[data-baseweb="select"] span {
+            white-space: normal !important;
+        }
+        span[title] {
+            white-space: normal !important;
+            text-overflow: clip !important;
+            overflow: visible !important;
         }
     </style>
 """, unsafe_allow_html=True)
