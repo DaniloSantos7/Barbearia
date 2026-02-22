@@ -44,7 +44,7 @@ st.markdown("""
             color: white !important;
             padding: 15px 30px;
             border-radius: 12px;
-            text-decoration: none !important; /* Remove o sublinhado */
+            text-decoration: none !important;
             font-weight: bold;
             font-size: 1.1rem;
             display: inline-block;
@@ -52,18 +52,27 @@ st.markdown("""
             box-shadow: 0 4px 15px rgba(0,0,0,0.3);
         }
 
-        /* --- FORÇA O TEXTO DOS SERVIÇOS A FICAR COMPLETO --- */
+        /* --- NOVA LÓGICA: ESTICAR BULLET SEM QUEBRAR TEXTO --- */
         span[data-baseweb="tag"] {
-            max-width: none !important;
+            max-width: 1000px !important; /* Permite que a tag cresça */
+            width: auto !important;       /* Estica conforme o conteúdo */
+            white-space: nowrap !important; /* PROÍBE a quebra de linha */
+            display: inline-flex !important;
+            align-items: center !important;
+            padding: 5px 10px !important;
             height: auto !important;
         }
-        div[data-baseweb="select"] span {
-            white-space: normal !important;
-        }
-        span[title] {
-            white-space: normal !important;
-            text-overflow: clip !important;
+
+        /* Garante que o texto interno não sofra truncamento */
+        span[data-baseweb="tag"] > span {
             overflow: visible !important;
+            text-overflow: clip !important;
+            white-space: nowrap !important;
+        }
+
+        /* Permite que o container de seleção aceite as tags largas */
+        div[data-baseweb="select"] {
+            overflow-x: hidden !important;
         }
     </style>
 """, unsafe_allow_html=True)
