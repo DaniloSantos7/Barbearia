@@ -57,34 +57,43 @@ st.markdown("""
             box-shadow: 0 4px 15px rgba(0,0,0,0.3);
         }
 
-        /* --- CORREÇÃO DEFINITIVA: ESTICAR TAGS SEM SOBREPOSIÇÃO --- */
+        /* --- CORREÇÃO FINAL ANTI-TRUNCAMENTO --- */
         
-        /* Ajusta o container para não esmagar as tags e permitir que fiquem lado a lado */
+        /* 1. Container Principal: Permite que as tags se organizem sem se atropelar */
         div[data-baseweb="select"] > div:first-child {
             display: flex !important;
-            flex-wrap: wrap !important; /* Permite que novas tags rolem para baixo se necessário */
-            gap: 8px !important;        /* Dá espaço entre um bullet e outro */
+            flex-wrap: wrap !important;
+            gap: 8px !important;
             padding: 5px !important;
         }
 
-        /* Ajusta o bullet (a tag vermelha) */
+        /* 2. A Tag Vermelha: Removemos qualquer limite de largura */
         span[data-baseweb="tag"] {
-            max-width: none !important;    /* Libera a largura total */
-            width: auto !important;         /* Estica conforme o texto */
-            white-space: nowrap !important; /* Proíbe quebra de linha no texto */
+            max-width: none !important;
+            width: auto !important;
+            white-space: nowrap !important;
             display: inline-flex !important;
-            flex-shrink: 0 !important;      /* Impede que o Streamlit "esmague" o balão */
+            flex-shrink: 0 !important;
             padding: 4px 10px !important;
-            height: auto !important;
             background-color: #ff4b4b !important;
+            border-radius: 6px !important;
         }
 
-        /* Garante que o texto dentro da tag não suma nem vire reticências */
-        span[data-baseweb="tag"] > span {
+        /* 3. O TEXTO INTERNO: Aqui é onde o Streamlit "esconde" o texto. 
+           Forçamos ele a ser visível e não cortar */
+        span[data-baseweb="tag"] span {
+            max-width: none !important;
             overflow: visible !important;
-            text-overflow: clip !important;
+            text-overflow: unset !important;
             white-space: nowrap !important;
-            display: block !important;
+            display: inline-block !important;
+        }
+
+        /* 4. O BOTÃO DE FECHAR (X): Garante que ele fique após o texto */
+        span[data-baseweb="tag"] button, 
+        span[data-baseweb="tag"] svg {
+            flex-shrink: 0 !important;
+            margin-left: 4px !important;
         }
     </style>
 """, unsafe_allow_html=True)
