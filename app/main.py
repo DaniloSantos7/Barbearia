@@ -159,9 +159,67 @@ with t2:
     if engine:
         try:
             with engine.connect() as conn:
-                # Importamos e renderizamos o arquivo que você já tem
-                from dashboards.dashboard_semana import render_dashboard_semanal
-                render_dashboard_semanal(conn)
+                # 1. BUSCA DOS DADOS (Usando sua Query Real)
+                df_semana = pd.read_sql(QUERY_RESUMO_SEMANA, conn)
+                
+                # 2. LÓGICA DE DATAS PARA A LEGENDA (Visual apenas)
+                hoje = datetime.now(fuso_br)
+                # Segunda-feira desta semana
+                inicio_semana = (hoje - timedelta(days=hoje.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
+                # Domingo desta semana
+                fim_semana = (inicio_semana + timedelta(days=6)).replace(hour=23, minute=59, second=59, microsecond=0)
+                
+                data_inicio_str = inicio_semana.strftime('%d/%m')
+                data_fim_str = fim_semana.strftime('%d/%m')
+
+                st.write(f"### 📅 Ciclo Semanal: {data_inicio_str} a {data_fim_str}")
+                st.caption("Reset automático: Todo domingo às 23:59")
+
+                if not df_semana.empty:
+                    # --- CÁLCULOS ---
+                    fat_sem = float(df_semana['faturamento_servicos'].sum())
+                    caixa_sem = float(df_semana['total_caixinhas'].sum())
+                    total_geral = fat_sem + caixa_sem
+
+                    # --- MÉTRICAS COM EMOJIS ---
+                    ms1, ms2, ms3 = st.columns(3)
+                    ms1.metric("💰 Faturamento", f"R$ {fat_sem:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+                    ms2.metric("🎁 Caixinhas", f"R$ {caixa_sem:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+                    ms3.metric("📈 Total Geral", f"R$ {total_geral:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+
+                    st.divider()
+
+                    # --- FORMATAÇÃO DO GRÁFICO ---
+                    # Garante que a data está no formato datetime e cria a coluna formatada (Ex: 22/02)
+                    df_semana['data'] = pd.to_datetime(df_semana['data'])
+                    df_semana["data_grafico"] = df_semana["data"].dt.strftime("%d/%m")
+                    
+                    fig_sem = px.bar(
+                        df_semana, 
+                        x="data_grafico", 
+                        y="faturamento_servicos",
+                        title="Desempenho Diário (Serviços)",
+                        template="plotly_dark",
+                        text_auto='.2s' # Mostra o valor em cima da barra (ex: 1.2k)
+                    )
+                    
+                    fig_sem.update_traces(
+                        marker_color='#ff4b4b', # Vermelho padrão
+                        hovertemplate="<b>Data:</b> %{x}<br><b>Receita:</b> R$ %{y:,.2f}<extra></extra>"
+                    )
+
+                    # TRAVAMENTO TOTAL (MOBILE FRIENDLY)
+                    fig_sem.update_layout(
+                        dragmode=False, 
+                        xaxis=dict(fixedrange=True, title=None), 
+                        yaxis=dict(fixedrange=True, title=None),
+                        bargap=0.3
+                    )
+
+                    st.plotly_chart(fig_sem, use_container_width=True, config={'displayModeBar': False})
+                else:
+                    st.info(f"Nenhum dado registrado para o ciclo {data_inicio_str} a {data_fim_str}.")
+
         except Exception as e:
             st.error(f"Erro ao carregar resumo semanal: {e}")
 
