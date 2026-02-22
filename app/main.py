@@ -13,6 +13,7 @@ from datetime import datetime, timedelta
 from streamlit_autorefresh import st_autorefresh
 from sqlalchemy.engine import URL
 import locale
+from dashboards.dashboard_semana import render_dashboard_semanal
 
 # --- CONFIGURAÇÃO REGIONAL ---
 try:
@@ -128,7 +129,7 @@ else:
 st.markdown("---")
 
 # --- ABAS ---
-t1, t2, t3 = st.tabs(["📋 Agenda", "📊 Evolução Mensal", "📱 QR Cliente"])
+t1, t2, t3, t4 = st.tabs(["📋 Agenda", "💰 Ganhos Semanais", "📊 Evolução Mensal", "📱 QR Cliente"])
 
 with t1:
     st.write("### 📅 Consultar Agenda")
@@ -153,7 +154,18 @@ with t1:
         except Exception as e:
             st.error(f"Erro ao carregar agenda: {e}")
 
+
 with t2:
+    if engine:
+        try:
+            with engine.connect() as conn:
+                # Importamos e renderizamos o arquivo que você já tem
+                from dashboards.dashboard_semana import render_dashboard_semanal
+                render_dashboard_semanal(conn)
+        except Exception as e:
+            st.error(f"Erro ao carregar resumo semanal: {e}")
+
+with t3:
     st.write("### 🔍 Filtrar Período")
     hoje_data = datetime.now(fuso_br).date()
     meses_nomes = {1: "Janeiro", 2: "Fevereiro", 3: "Março", 4: "Abril", 5: "Maio", 6: "Junho",
@@ -230,7 +242,7 @@ with t2:
         else:
             st.warning("Sem dados para este período.")
 
-with t3:
+with t4:
     st.write("### 🔗 Link do Tablet")
     url_cliente = "https://barbearia-flowokbfr5bqb9szv4txmp.streamlit.app/formulario"
     qr_img = qrcode.make(url_cliente)
