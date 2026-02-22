@@ -184,7 +184,7 @@ with t2:
                     # --- MÉTRICAS COM EMOJIS ---
                     ms1, ms2, ms3 = st.columns(3)
                     ms1.metric("💰 Faturamento", f"R$ {fat_sem:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
-                    ms2.metric("🎁 Caixinhas", f"R$ {caixa_sem:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+                    ms2.metric("💸 Caixinhas", f"R$ {caixa_sem:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
                     ms3.metric("📈 Total Geral", f"R$ {total_geral:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
 
                     st.divider()
@@ -200,7 +200,7 @@ with t2:
                         y="faturamento_servicos",
                         title="Desempenho Diário (Serviços)",
                         template="plotly_dark",
-                        text_auto='.2s' # Mostra o valor em cima da barra (ex: 1.2k)
+                        
                     )
                     
                     fig_sem.update_traces(
