@@ -68,7 +68,7 @@ jobs:
               print(f"Título detectado na aba: {titulo_da_aba}")
 
               # Verificação dupla: Título ou Conteúdo
-              if "BarberDash" in titulo_da_aba or "BarberDash" in html_da_pagina:
+              if "BarberDash" in titulo_da_aba or "Painel Administrativo" in html_da_pagina:
                   print("✅ SUCESSO: BarberDash está online e funcional!")
               else:
                   print("❌ ERRO: O app carregou, mas 'BarberDash' não foi encontrado.")
